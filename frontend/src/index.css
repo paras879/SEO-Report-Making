@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    font-family: 'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif;
+  }
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased selection:bg-brand-500 selection:text-white;
+  }
+  
+  /* Modern custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  }
+}
+
+/* Reusable component classes */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold tracking-tight transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-brand-600 to-brand-700 text-white hover:from-brand-500 hover:to-brand-600 shadow-sm hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply btn bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-card;
+  }
+  .btn-danger {
+    @apply btn bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-500 hover:to-red-600 shadow-sm hover:shadow-md;
+  }
+  .btn-success {
+    @apply btn bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-500 hover:to-emerald-600 shadow-sm hover:shadow-md;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:border-brand-500 focus:ring-4 focus:ring-brand-100 outline-none transition-all duration-150;
+  }
+
+  /* Custom dropdown arrow for <select> */
+  select.input {
+    @apply appearance-none pr-10 cursor-pointer bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-position: right 0.85rem center;
+    background-size: 1rem;
+  }
+  select.input:disabled {
+    @apply bg-slate-50 text-slate-400 cursor-not-allowed border-slate-200;
+  }
+
+  .label {
+    @apply block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-slate-200/70 p-6 transition-all duration-200;
+  }
+  .card-interactive {
+    @apply card hover:shadow-card-hover hover:border-slate-300/80 cursor-pointer;
+  }
+  .alert-error {
+    @apply rounded-xl bg-red-50/90 text-red-700 text-sm p-4 border border-red-200/80 flex items-center gap-2;
+  }
+  .alert-success {
+    @apply rounded-xl bg-emerald-50/90 text-emerald-800 text-sm p-4 border border-emerald-200/80 flex items-center gap-2;
+  }
+}
+
+@keyframes slideDrawer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-drawer-in {
+  animation: slideDrawer 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+
