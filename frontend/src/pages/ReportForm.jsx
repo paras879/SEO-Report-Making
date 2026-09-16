@@ -204,19 +204,48 @@ export default function ReportForm() {
     showToast('📲 WhatsApp client update copied to clipboard!');
   };
 
-  // Live links management
+  // Live links management & Auto-count synchronization
+  const syncCountsFromLinks = (links) => {
+    const counts = {
+      Classified: 0,
+      'Guest Post': 0,
+      'Blog Post': 0,
+      'Article Post': 0,
+    };
+    links.forEach((l) => {
+      const t = l.type || 'Classified';
+      if (counts[t] !== undefined) {
+        counts[t] += 1;
+      }
+    });
+    setForm((prev) => ({
+      ...prev,
+      backlinks_classified: counts.Classified,
+      backlinks_guest_post: counts['Guest Post'],
+      backlinks_blog_post: counts['Blog Post'],
+      backlinks_article_post: counts['Article Post'],
+    }));
+  };
+
   const addLiveLink = () => {
-    setLiveLinks([...liveLinks, { url: '', anchor: '', type: 'Classified' }]);
+    const next = [...liveLinks, { url: '', anchor: '', type: 'Classified' }];
+    setLiveLinks(next);
+    syncCountsFromLinks(next);
   };
 
   const updateLiveLink = (index, key, val) => {
     const next = [...liveLinks];
     next[index][key] = val;
     setLiveLinks(next);
+    if (key === 'type') {
+      syncCountsFromLinks(next);
+    }
   };
 
   const removeLiveLink = (index) => {
-    setLiveLinks(liveLinks.filter((_, i) => i !== index));
+    const next = liveLinks.filter((_, i) => i !== index);
+    setLiveLinks(next);
+    syncCountsFromLinks(next);
   };
 
   const handleBulkPasteLinks = () => {
@@ -232,7 +261,9 @@ export default function ReportForm() {
       type: bulkType,
     }));
 
-    setLiveLinks([...liveLinks, ...newRows]);
+    const next = [...liveLinks, ...newRows];
+    setLiveLinks(next);
+    syncCountsFromLinks(next);
     setBulkText('');
     setShowBulkPaste(false);
     showToast(`✅ Added ${newRows.length} live link URLs!`);
