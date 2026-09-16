@@ -9,6 +9,7 @@ const REPORT_COLS = `
   client_name, project_name, website_url,
   service_pages, blog_pages,
   backlinks_classified, backlinks_guest_post, backlinks_blog_post, backlinks_article_post,
+  backlink_urls,
   status, current_level, submitted_at, created_at, updated_at`;
 
 const PRIORITIES = ['low', 'medium', 'high'];
@@ -47,6 +48,7 @@ function pickReportFields(b) {
     backlinks_guest_post: guest,
     backlinks_blog_post: blog,
     backlinks_article_post: article,
+    backlink_urls: typeof b.backlink_urls === 'object' ? JSON.stringify(b.backlink_urls) : (b.backlink_urls || null),
   };
 }
 
@@ -88,14 +90,16 @@ async function createReport(req, res, next) {
          challenges, next_day_plan, keywords, backlinks_created, onpage_work, offpage_work, ranking_change,
          client_name, project_name, website_url,
          service_pages, blog_pages, backlinks_classified, backlinks_guest_post, backlinks_blog_post, backlinks_article_post,
+         backlink_urls,
          status, current_level, submitted_at)
-       VALUES ($1,$2,$3,$4,COALESCE($5,CURRENT_DATE),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,${submit ? 'now()' : 'NULL'})
+       VALUES ($1,$2,$3,$4,COALESCE($5,CURRENT_DATE),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,${submit ? 'now()' : 'NULL'})
        RETURNING ${REPORT_COLS}`,
       [
         req.user.id, req.user.team_id, teamLeadId, f.title, f.report_date, f.priority, f.task_done, f.hours_worked,
         f.work_status, f.remarks, f.challenges, f.next_day_plan, f.keywords, f.backlinks_created, f.onpage_work, f.offpage_work,
         f.ranking_change, f.client_name, f.project_name, f.website_url,
         f.service_pages, f.blog_pages, f.backlinks_classified, f.backlinks_guest_post, f.backlinks_blog_post, f.backlinks_article_post,
+        f.backlink_urls,
         status, level,
       ]
     );
@@ -135,12 +139,14 @@ async function updateReport(req, res, next) {
         work_status=$6, remarks=$7, challenges=$8, next_day_plan=$9, keywords=$10, backlinks_created=$11,
         onpage_work=$12, offpage_work=$13, ranking_change=$14, client_name=$15, project_name=$16, website_url=$17,
         service_pages=$18, blog_pages=$19, backlinks_classified=$20, backlinks_guest_post=$21, backlinks_blog_post=$22, backlinks_article_post=$23,
+        backlink_urls=$24,
         updated_at=now()
-       WHERE id=$24 RETURNING ${REPORT_COLS}`,
+       WHERE id=$25 RETURNING ${REPORT_COLS}`,
       [f.title, f.report_date, f.priority, f.task_done, f.hours_worked, f.work_status, f.remarks,
        f.challenges, f.next_day_plan, f.keywords, f.backlinks_created, f.onpage_work, f.offpage_work,
        f.ranking_change, f.client_name, f.project_name, f.website_url,
        f.service_pages, f.blog_pages, f.backlinks_classified, f.backlinks_guest_post, f.backlinks_blog_post, f.backlinks_article_post,
+       f.backlink_urls,
        req.params.id]
     );
     res.json({ success: true, report: rows[0] });

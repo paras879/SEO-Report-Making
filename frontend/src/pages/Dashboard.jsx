@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -108,13 +109,27 @@ export default function Dashboard() {
   const [s, setS] = useState({});
   const [charts, setCharts] = useState({ byStatus: [], last7: [] });
   const [err, setErr] = useState('');
+  const [hasTodayReport, setHasTodayReport] = useState(true);
+  const [streakDays, setStreakDays] = useState(0);
 
   useEffect(() => {
     api.get('/dashboard/stats').then((r) => setS(r.data.summary || {}))
       .catch((e) => setErr(e.response?.data?.message || 'Failed to load stats'));
     api.get('/dashboard/charts').then((r) => setCharts({ byStatus: r.data.byStatus || [], last7: r.data.last7 || [] }))
       .catch(() => {});
-  }, []);
+
+    if (user.role === 'employee') {
+      api.get('/reports', { params: { limit: 14 } }).then((r) => {
+        const reports = r.data.reports || [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayExists = reports.some((rep) => rep.report_date?.slice(0, 10) === todayStr);
+        setHasTodayReport(todayExists);
+
+        const uniqueDates = new Set(reports.map((rep) => rep.report_date?.slice(0, 10)).filter(Boolean));
+        setStreakDays(uniqueDates.size);
+      }).catch(() => {});
+    }
+  }, [user.role]);
 
   return (
     <div className="space-y-6">
@@ -122,8 +137,15 @@ export default function Dashboard() {
       <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-brand-950 to-slate-900 p-6 md:p-8 text-white relative overflow-hidden shadow-xl border border-slate-800">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-brand-600/10 to-transparent pointer-events-none" />
         <div className="relative z-10 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-brand-300 text-xs font-bold uppercase tracking-wider mb-3">
-            <span>✨</span> Workspace Overview
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-brand-300 text-xs font-bold uppercase tracking-wider">
+              <span>✨</span> Workspace Overview
+            </div>
+            {user.role === 'employee' && streakDays > 0 && (
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-orange-500/20 text-orange-300 text-xs font-extrabold border border-orange-500/30">
+                <span>🔥</span> {streakDays}-Day Activity Streak
+              </div>
+            )}
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
             Welcome back, {user.name} 👋
@@ -133,6 +155,29 @@ export default function Dashboard() {
           </p>
         </div>
       </div>
+
+      {/* Employee Pending Report Alert Banner */}
+      {user.role === 'employee' && !hasTodayReport && (
+        <div className="p-4 md:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-sm shrink-0">
+              ⏰
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-900">Today's Daily SEO Report is Pending</h4>
+              <p className="text-xs text-slate-500 mt-0.5">
+                You haven't submitted your report for today yet. Keep your daily reporting streak going!
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/reports/new"
+            className="btn-primary text-xs shrink-0 self-start sm:self-auto shadow-md"
+          >
+            + Create Today's Report →
+          </Link>
+        </div>
+      )}
 
       {err && (
         <div className="alert-error">

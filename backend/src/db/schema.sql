@@ -109,6 +109,7 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_classified   INTEGER NOT 
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_guest_post   INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_blog_post    INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_article_post INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlink_urls          TEXT;
 
 -- ---------- REPORT COMMENTS (discussion thread — sab log likh sakte) ----------
 CREATE TABLE IF NOT EXISTS report_comments (

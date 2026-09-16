@@ -28,6 +28,55 @@ export default function ReportDetail() {
   const [busy, setBusy] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  };
+
+  const copyWhatsAppSummary = () => {
+    if (!data?.report) return;
+    const r = data.report;
+    const dateFormatted = r.report_date?.slice(0, 10) || 'Today';
+    let parsedLinks = [];
+    if (r.backlink_urls) {
+      try {
+        parsedLinks = typeof r.backlink_urls === 'string' ? JSON.parse(r.backlink_urls) : r.backlink_urls;
+      } catch {}
+    }
+
+    const lines = [
+      `📊 *Daily SEO Update — ${dateFormatted}*`,
+      r.title ? `📝 *Title:* ${r.title}` : '',
+      r.employee_name ? `👤 *Submitted By:* ${r.employee_name}` : '',
+      r.task_done ? `✅ *Work Done:* ${r.task_done}` : '',
+      r.service_pages ? `🧩 *Service Pages:* ${r.service_pages}` : '',
+      r.blog_pages ? `📝 *Blog Pages:* ${r.blog_pages}` : '',
+      r.keywords ? `🎯 *Keywords:* ${r.keywords}` : '',
+      `🔗 *Backlinks Created (${r.backlinks_created ?? 0} Total):*`,
+      `   • Classified: ${r.backlinks_classified || 0}`,
+      `   • Guest Post: ${r.backlinks_guest_post || 0}`,
+      `   • Blog Post: ${r.backlinks_blog_post || 0}`,
+      `   • Article Post: ${r.backlinks_article_post || 0}`,
+    ];
+
+    if (Array.isArray(parsedLinks) && parsedLinks.length > 0) {
+      lines.push(`🌐 *Live Links Built (${parsedLinks.length}):*`);
+      parsedLinks.slice(0, 5).forEach((l) => {
+        lines.push(`   • ${l.url} ${l.anchor ? `(${l.anchor})` : ''}`);
+      });
+      if (parsedLinks.length > 5) {
+        lines.push(`   • ...and ${parsedLinks.length - 5} more links`);
+      }
+    }
+
+    if (r.remarks) lines.push(`📌 *Remarks:* ${r.remarks}`);
+
+    const text = lines.filter(Boolean).join('\n');
+    navigator.clipboard.writeText(text);
+    showToast('📲 WhatsApp client update copied to clipboard!');
+  };
 
   const load = () => {
     api.get(`/reports/${id}`).then((r) => setData(r.data)).catch((e) => setErr(e.response?.data?.message || 'Failed to load report'));
@@ -105,10 +154,25 @@ export default function ReportDetail() {
 
   const authorInitials = (r.employee_name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
+  let liveBacklinkUrls = [];
+  if (r.backlink_urls) {
+    try {
+      const parsed = typeof r.backlink_urls === 'string' ? JSON.parse(r.backlink_urls) : r.backlink_urls;
+      if (Array.isArray(parsed)) liveBacklinkUrls = parsed;
+    } catch {}
+  }
+
   return (
     <div className="w-full space-y-6">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2">
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* Top Breadcrumb & Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <button
           onClick={() => navigate('/reports')}
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-200/80 px-3.5 py-2 rounded-xl transition-all shadow-card"
@@ -117,12 +181,24 @@ export default function ReportDetail() {
           <span>Back to Reports</span>
         </button>
 
-        {canEmployeeEdit && (
-          <Link to={`/reports/${id}/edit`} className="btn-secondary text-xs">
-            <span>✏️</span>
-            <span>Edit Report</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={copyWhatsAppSummary}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/70 px-3.5 py-2 rounded-xl transition-all shadow-sm"
+            title="Copy formatted client update for WhatsApp"
+          >
+            <span>📲</span>
+            <span>Copy WhatsApp Update</span>
+          </button>
+
+          {canEmployeeEdit && (
+            <Link to={`/reports/${id}/edit`} className="btn-secondary text-xs">
+              <span>✏️</span>
+              <span>Edit Report</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {err && (
@@ -248,6 +324,53 @@ export default function ReportDetail() {
                 ))}
               </div>
             </div>
+
+            {/* Live Backlink URLs Log */}
+            {liveBacklinkUrls.length > 0 && (
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Live Backlinks Log</p>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                    {liveBacklinkUrls.length} links recorded
+                  </span>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                        <th className="py-2 px-3 w-8">#</th>
+                        <th className="py-2 px-3">Live URL</th>
+                        <th className="py-2 px-3">Anchor</th>
+                        <th className="py-2 px-3">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {liveBacklinkUrls.map((link, i) => (
+                        <tr key={i} className="hover:bg-slate-50/60">
+                          <td className="py-1.5 px-3 text-slate-400 font-semibold">{i + 1}</td>
+                          <td className="py-1.5 px-3">
+                            <a
+                              href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-brand-600 hover:text-brand-700 hover:underline font-mono truncate max-w-xs block"
+                            >
+                              {link.url} ↗
+                            </a>
+                          </td>
+                          <td className="py-1.5 px-3 font-medium text-slate-700">{link.anchor || '—'}</td>
+                          <td className="py-1.5 px-3">
+                            <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold">
+                              {link.type || 'Backlink'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Client & Project Info */}
