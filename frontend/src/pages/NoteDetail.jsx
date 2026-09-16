@@ -10,6 +10,14 @@ const NOTE_STATUS = {
   forwarded_to_admin: { label: 'Forwarded to Admin', cls: 'bg-emerald-50 text-emerald-700 border border-emerald-200' },
 };
 
+const CATEGORIES = {
+  blocker: { label: 'Blocker / Issue', icon: '🚨', cls: 'border-rose-300 text-rose-800 bg-rose-50' },
+  task: { label: 'Daily Checklist', icon: '🎯', cls: 'border-blue-300 text-blue-800 bg-blue-50' },
+  idea: { label: 'SEO Idea & Strategy', icon: '💡', cls: 'border-purple-300 text-purple-800 bg-purple-50' },
+  audit: { label: 'Technical Audit', icon: '🔍', cls: 'border-emerald-300 text-emerald-800 bg-emerald-50' },
+  general: { label: 'General Note', icon: '📄', cls: 'border-slate-300 text-slate-700 bg-slate-50' },
+};
+
 export default function NoteDetail() {
   const { id } = useParams();
   const { user } = useAuth();
@@ -19,6 +27,20 @@ export default function NoteDetail() {
   const [fwdMsg, setFwdMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [zoom, setZoom] = useState(null);
+  const [toast, setToast] = useState('');
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const copyNoteText = () => {
+    if (!data?.note) return;
+    const n = data.note;
+    const txt = `${n.title ? `${n.title}\n\n` : ''}${n.content?.text || ''}`;
+    navigator.clipboard.writeText(txt);
+    showToast('📋 Note content copied to clipboard!');
+  };
 
   const load = () => {
     api.get(`/notes/${id}`).then((r) => setData(r.data)).catch((e) => setErr(e.response?.data?.message || 'Failed to load note'));
@@ -76,13 +98,21 @@ export default function NoteDetail() {
   const n = data.note;
   const content = n.content || { text: '', images: [] };
   const st = NOTE_STATUS[n.status] || { label: n.status, cls: 'bg-slate-100 text-slate-600' };
+  const cat = CATEGORIES[content.category] || CATEGORIES.general;
   const canForward = user.role === 'team_lead' && n.status === 'sent_to_tl' && n.team_lead_id === user.id;
   const authorInitials = (n.author_name || 'U').split(' ').map(nm => nm[0]).join('').toUpperCase().slice(0, 2);
 
   return (
     <div className="w-full space-y-6 pb-12">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl border border-slate-700 flex items-center gap-2">
+          <span>{toast}</span>
+        </div>
+      )}
+
       {/* Top Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate('/notes')}
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 bg-white hover:bg-slate-50 border border-slate-200/80 px-3.5 py-2 rounded-xl transition-all shadow-card"
@@ -90,10 +120,20 @@ export default function NoteDetail() {
           <span>←</span>
           <span>Back to Notes</span>
         </button>
-        <div className="flex items-center gap-2.5">
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={copyNoteText}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-xl transition-all shadow-sm"
+          >
+            <span>📋</span>
+            <span>Copy Note</span>
+          </button>
+
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${st.cls}`}>
             ● {st.label}
           </span>
+
           <button
             onClick={deleteCurrentNote}
             disabled={busy}
@@ -115,6 +155,13 @@ export default function NoteDetail() {
       {/* Note Header Card */}
       <div className="card p-6 md:p-8 bg-gradient-to-br from-white via-white to-slate-50 border-slate-200/90 shadow-card">
         <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-md border ${cat.cls}`}>
+              <span>{cat.icon}</span>
+              <span>{cat.label}</span>
+            </span>
+          </div>
+
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
             {n.title || '(Untitled Note)'}
           </h1>

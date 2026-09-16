@@ -12,6 +12,7 @@ function validateContent(content) {
   if (!content || typeof content !== 'object') return { ok: false, message: 'Note content invalid' };
   const text = typeof content.text === 'string' ? content.text : '';
   const images = Array.isArray(content.images) ? content.images : [];
+  const category = typeof content.category === 'string' ? content.category.slice(0, 50) : 'general';
   if (!text.trim() && images.length === 0) return { ok: false, message: 'Note is empty — write something or add an image' };
   if (text.length > MAX_TEXT) return { ok: false, message: 'Text is too long' };
   if (images.length > MAX_IMAGES) return { ok: false, message: `Max ${MAX_IMAGES} images allowed` };
@@ -22,7 +23,7 @@ function validateContent(content) {
     total += img.length;
   }
   if (total > MAX_TOTAL_BYTES) return { ok: false, message: 'Note is too large, please remove some images' };
-  return { ok: true, clean: { text, images } };
+  return { ok: true, clean: { text, images, category } };
 }
 
 async function canAccessNote(user, note) {
@@ -140,6 +141,7 @@ async function listNotes(req, res, next) {
       `SELECT n.id, n.title, n.status, n.author_id, n.team_id, n.team_lead_id, n.created_at, n.updated_at,
               a.name AS author_name, a.role AS author_role, tl.name AS team_lead_name, t.name AS team_name,
               (n.content->>'text') AS preview,
+              (n.content->>'category') AS category,
               COALESCE(jsonb_array_length(n.content->'images'),0) AS image_count
        FROM notes n
        LEFT JOIN users a ON a.id=n.author_id
