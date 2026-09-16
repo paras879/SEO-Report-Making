@@ -9,6 +9,9 @@ const EMPTY = {
   challenges: '', next_day_plan: '',
   keywords: '', backlinks_created: 0, onpage_work: '', offpage_work: '', ranking_change: '',
   client_name: '', project_name: '', website_url: '',
+  // ---- Website work + backlink types ----
+  service_pages: '', blog_pages: '',
+  backlinks_classified: 0, backlinks_guest_post: 0, backlinks_blog_post: 0, backlinks_article_post: 0,
 };
 
 export default function ReportForm() {
@@ -31,6 +34,12 @@ export default function ReportForm() {
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
+  const totalBacklinks =
+    (Number(form.backlinks_classified) || 0) +
+    (Number(form.backlinks_guest_post) || 0) +
+    (Number(form.backlinks_blog_post) || 0) +
+    (Number(form.backlinks_article_post) || 0);
+
   const uploadFiles = async (reportId) => {
     if (files.length === 0) return;
     const fd = new FormData();
@@ -41,7 +50,7 @@ export default function ReportForm() {
   const save = async (submit) => {
     setErr(''); setSaving(true);
     try {
-      const payload = { ...form, backlinks_created: Number(form.backlinks_created) || 0, hours_worked: form.hours_worked || null };
+      const payload = { ...form, hours_worked: form.hours_worked || null };
       let reportId = id;
       if (editing) {
         await api.patch(`/reports/${id}`, payload);
@@ -175,28 +184,6 @@ export default function ReportForm() {
             />
           </div>
 
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="label">Problems / Blockers Encountered</label>
-            <textarea
-              className="input border-amber-200 focus:border-amber-400 focus:ring-amber-100 min-h-[80px]"
-              rows="2"
-              value={form.challenges}
-              onChange={set('challenges')}
-              placeholder="Any access issues, CMS errors, or dependency blockers you need assistance with..."
-            />
-          </div>
-
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="label">Next Day Action Plan</label>
-            <textarea
-              className="input border-blue-200 focus:border-blue-400 focus:ring-blue-100 min-h-[80px]"
-              rows="2"
-              value={form.next_day_plan}
-              onChange={set('next_day_plan')}
-              placeholder="Priority tasks scheduled for the next working day..."
-            />
-          </div>
-
           <div className="sm:col-span-2 lg:col-span-4">
             <label className="label">Additional Remarks</label>
             <textarea
@@ -210,20 +197,42 @@ export default function ReportForm() {
         </div>
       </div>
 
-      {/* Section 2: SEO Metrics */}
+      {/* Section 2: Website Work */}
       <div className="card space-y-5">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">
             02
           </div>
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">SEO & Deliverable Metrics</h2>
-            <p className="text-[11px] text-slate-400">Quantitative keyword, ranking, and link building outputs</p>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Website Work & Keywords</h2>
+            <p className="text-[11px] text-slate-400">What you worked on across the website</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="sm:col-span-2 lg:col-span-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Service Pages Worked On</label>
+            <textarea
+              className="input min-h-[80px]"
+              rows="2"
+              value={form.service_pages}
+              onChange={set('service_pages')}
+              placeholder="e.g. /web-design, /seo-services — pages & changes made..."
+            />
+          </div>
+
+          <div>
+            <label className="label">Blog Pages Worked On</label>
+            <textarea
+              className="input min-h-[80px]"
+              rows="2"
+              value={form.blog_pages}
+              onChange={set('blog_pages')}
+              placeholder="e.g. /blog/seo-tips-2026 — new posts / updates..."
+            />
+          </div>
+
+          <div className="lg:col-span-2">
             <label className="label">Keywords Worked On</label>
             <input
               className="input"
@@ -232,93 +241,43 @@ export default function ReportForm() {
               placeholder="e.g. best dental clinic, teeth whitening near me (comma separated)"
             />
           </div>
-
-          <div className="sm:col-span-1 lg:col-span-2">
-            <label className="label">Backlinks Created (Count)</label>
-            <input
-              type="number"
-              className="input"
-              value={form.backlinks_created}
-              onChange={set('backlinks_created')}
-              placeholder="0"
-            />
-          </div>
-
-          <div className="sm:col-span-1 lg:col-span-2">
-            <label className="label">Ranking Change</label>
-            <input
-              className="input"
-              value={form.ranking_change}
-              onChange={set('ranking_change')}
-              placeholder="e.g. +4 (from #12 to #8) or Stable"
-            />
-          </div>
-
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="label">On-Page Optimizations</label>
-            <textarea
-              className="input min-h-[80px]"
-              rows="2"
-              value={form.onpage_work}
-              onChange={set('onpage_work')}
-              placeholder="Meta titles, H1 structure, internal linking, schema markup..."
-            />
-          </div>
-
-          <div className="sm:col-span-2 lg:col-span-2">
-            <label className="label">Off-Page Activities</label>
-            <textarea
-              className="input min-h-[80px]"
-              rows="2"
-              value={form.offpage_work}
-              onChange={set('offpage_work')}
-              placeholder="Guest posting, citation building, Web 2.0, directory submissions..."
-            />
-          </div>
         </div>
       </div>
 
-      {/* Section 3: Client / Project */}
+      {/* Section 3: Backlinks by type */}
       <div className="card space-y-5">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-            03
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+              03
+            </div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Backlinks Created</h2>
+              <p className="text-[11px] text-slate-400">Enter how many of each type you built today</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Client & Campaign Context</h2>
-            <p className="text-[11px] text-slate-400">Account metadata for reporting filters and audits</p>
+          <div className="text-right">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total</p>
+            <p className="text-2xl font-extrabold text-emerald-600">{totalBacklinks}</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="sm:col-span-1 lg:col-span-2">
-            <label className="label">Client Name</label>
-            <input
-              className="input"
-              value={form.client_name}
-              onChange={set('client_name')}
-              placeholder="e.g. Apex Health Solutions"
-            />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="label">Classified</label>
+            <input type="number" min="0" className="input" value={form.backlinks_classified} onChange={set('backlinks_classified')} placeholder="0" />
           </div>
-
-          <div className="sm:col-span-1 lg:col-span-2">
-            <label className="label">Project / Campaign</label>
-            <input
-              className="input"
-              value={form.project_name}
-              onChange={set('project_name')}
-              placeholder="e.g. Q3 Organic Growth"
-            />
+          <div>
+            <label className="label">Guest Post</label>
+            <input type="number" min="0" className="input" value={form.backlinks_guest_post} onChange={set('backlinks_guest_post')} placeholder="0" />
           </div>
-
-          <div className="sm:col-span-2 lg:col-span-4">
-            <label className="label">Website Target URL</label>
-            <input
-              className="input"
-              value={form.website_url}
-              onChange={set('website_url')}
-              placeholder="https://example.com"
-            />
+          <div>
+            <label className="label">Blog Post</label>
+            <input type="number" min="0" className="input" value={form.backlinks_blog_post} onChange={set('backlinks_blog_post')} placeholder="0" />
+          </div>
+          <div>
+            <label className="label">Article Post</label>
+            <input type="number" min="0" className="input" value={form.backlinks_article_post} onChange={set('backlinks_article_post')} placeholder="0" />
           </div>
         </div>
       </div>

@@ -219,28 +219,35 @@ export default function ReportDetail() {
           <div className="card space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <span className="text-lg">🔍</span>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">SEO & Deliverable Metrics</h2>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700">Website Work & Backlinks</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100 col-span-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Keywords Target</p>
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-slate-50/80 border border-slate-100">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Keywords Worked On</p>
                 <p className="text-sm font-semibold text-slate-800">{r.keywords || '—'}</p>
               </div>
-
-              <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-1">Backlinks Built</p>
-                <p className="text-2xl font-extrabold text-emerald-800">{r.backlinks_created ?? 0}</p>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-indigo-50/60 border border-indigo-100">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 mb-1">Ranking Shift</p>
-                <p className="text-lg font-extrabold text-indigo-800">{r.ranking_change || 'No change'}</p>
-              </div>
+              {r.service_pages && <DetailItem label="Service Pages" value={r.service_pages} icon="🧩" />}
+              {r.blog_pages && <DetailItem label="Blog Pages" value={r.blog_pages} icon="📝" />}
+              {/* backward-compat: old reports may have these */}
+              {r.onpage_work && <DetailItem label="On-Page Work" value={r.onpage_work} icon="📄" />}
+              {r.offpage_work && <DetailItem label="Off-Page Work" value={r.offpage_work} icon="🌐" />}
             </div>
 
-            {r.onpage_work && <DetailItem label="On-Page Work" value={r.onpage_work} icon="📄" />}
-            {r.offpage_work && <DetailItem label="Off-Page Work" value={r.offpage_work} icon="🌐" />}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Backlinks Created</p>
+                <p className="text-xs font-bold text-emerald-700">Total: {r.backlinks_created ?? 0}</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[['Classified', r.backlinks_classified], ['Guest Post', r.backlinks_guest_post], ['Blog Post', r.backlinks_blog_post], ['Article Post', r.backlinks_article_post]].map(([label, val]) => (
+                  <div key={label} className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 text-center">
+                    <p className="text-lg font-extrabold text-emerald-800">{val ?? 0}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Client & Project Info */}

@@ -102,6 +102,14 @@ ALTER TABLE reports ADD COLUMN IF NOT EXISTS challenges TEXT;        -- problems
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS next_day_plan TEXT;     -- kal ka plan
 ALTER TABLE reports ADD COLUMN IF NOT EXISTS priority VARCHAR(10) NOT NULL DEFAULT 'medium'; -- low/medium/high
 
+-- Website work + backlink type breakdown (for SEO teams)
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS service_pages TEXT;    -- service pages worked on
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS blog_pages TEXT;       -- blog pages worked on
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_classified   INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_guest_post   INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_blog_post    INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE reports ADD COLUMN IF NOT EXISTS backlinks_article_post INTEGER NOT NULL DEFAULT 0;
+
 -- ---------- REPORT COMMENTS (discussion thread — sab log likh sakte) ----------
 CREATE TABLE IF NOT EXISTS report_comments (
   id         SERIAL PRIMARY KEY,
