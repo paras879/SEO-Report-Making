@@ -28,7 +28,9 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM reports WHERE status='forwarded') AS pending_admin,
           (SELECT COUNT(*) FROM reports WHERE status='admin_approved') AS approved,
           (SELECT COUNT(*) FROM reports WHERE status='admin_rejected') AS returned,
+          (SELECT COUNT(*) FROM reports) AS total_reports,
           (SELECT COUNT(*) FROM teams) AS teams,
+          (SELECT COUNT(*) FROM users WHERE role IN ('employee', 'team_lead', 'developer')) AS team_members,
           (SELECT COUNT(*) FROM dev_requests WHERE status NOT IN ('resolved')) AS open_dev_tickets,
           (SELECT COUNT(*) FROM dev_requests WHERE status='resolved') AS resolved_dev_tickets
       `);
