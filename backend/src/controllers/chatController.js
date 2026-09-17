@@ -70,29 +70,41 @@ async function contacts(req, res, next) {
   }
 }
 
-// GET /api/chat/:userId/messages  -> conversation (aur unread ko read mark)
+// GET /api/chat/:userId/messages  -> conversation (with delta sync support)
 async function conversation(req, res, next) {
   try {
     const me = req.user;
     const otherId = Number(req.params.userId);
+    const sinceId = req.query.since_id ? Number(req.query.since_id) : 0;
+
     const o = await pool.query('SELECT id, name, username, role, team_id, is_active FROM users WHERE id=$1', [otherId]);
     const other = o.rows[0];
     if (!other) return res.status(404).json({ success: false, message: 'User not found' });
     if (!canChat(me, other)) return res.status(403).json({ success: false, message: 'You cannot chat with this user' });
 
-    const { rows } = await pool.query(
-      `SELECT id, sender_id, receiver_id, body, is_read, created_at FROM messages
-       WHERE (sender_id=$1 AND receiver_id=$2) OR (sender_id=$2 AND receiver_id=$1)
-       ORDER BY created_at ASC LIMIT 500`,
-      [me.id, otherId]
-    );
-    // unhone jo mujhe bheja wo read mark
+    let sql = `
+      SELECT id, sender_id, receiver_id, body, is_read, created_at FROM messages
+      WHERE ((sender_id=$1 AND receiver_id=$2) OR (sender_id=$2 AND receiver_id=$1))
+    `;
+    const params = [me.id, otherId];
+
+    if (sinceId > 0) {
+      sql += ` AND id > $3 ORDER BY created_at ASC LIMIT 100`;
+      params.push(sinceId);
+    } else {
+      sql += ` ORDER BY created_at ASC LIMIT 300`;
+    }
+
+    const { rows } = await pool.query(sql, params);
+
+    // mark unread messages as read
     await pool.query('UPDATE messages SET is_read=TRUE WHERE sender_id=$1 AND receiver_id=$2 AND is_read=FALSE', [otherId, me.id]);
 
     res.json({
       success: true,
       contact: { id: other.id, name: other.name, username: other.username, role: other.role },
       messages: rows,
+      isDelta: sinceId > 0,
     });
   } catch (err) {
     next(err);

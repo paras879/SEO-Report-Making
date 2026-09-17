@@ -78,33 +78,78 @@ export default function Chat() {
   const bottomRef = useRef(null);
   const activeIdRef = useRef(null);
 
-  const loadContacts = () =>
+  const lastMsgIdRef = useRef(0);
+
+  const loadContacts = () => {
+    if (document.hidden) return;
     api
       .get('/chat/contacts')
       .then((r) => setContacts(r.data.contacts || []))
       .catch(() => {});
+  };
 
-  const loadMessages = (id) =>
+  const loadInitialMessages = (id) => {
+    lastMsgIdRef.current = 0;
     api
       .get(`/chat/${id}/messages`)
       .then((r) => {
-        if (activeIdRef.current === id) setMessages(r.data.messages || []);
+        if (activeIdRef.current === id) {
+          const list = r.data.messages || [];
+          setMessages(list);
+          if (list.length > 0) {
+            lastMsgIdRef.current = Math.max(...list.map((m) => m.id));
+          }
+        }
       })
-      .catch((e) => setErr(e.response?.data?.message || 'Failed'));
+      .catch((e) => setErr(e.response?.data?.message || 'Failed to load messages'));
+  };
 
-  // contacts poll
+  const loadDeltaMessages = (id) => {
+    if (document.hidden) return; // Skip polling when tab is not visible
+    const since = lastMsgIdRef.current;
+    if (!since) {
+      loadInitialMessages(id);
+      return;
+    }
+    api
+      .get(`/chat/${id}/messages`, { params: { since_id: since } })
+      .then((r) => {
+        if (activeIdRef.current === id && r.data.messages && r.data.messages.length > 0) {
+          const newItems = r.data.messages;
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const fresh = newItems.filter((m) => !existingIds.has(m.id));
+            return fresh.length ? [...prev, ...fresh] : prev;
+          });
+          lastMsgIdRef.current = Math.max(lastMsgIdRef.current, ...newItems.map((m) => m.id));
+        }
+      })
+      .catch(() => {});
+  };
+
+  // contacts poll & tab focus resume
   useEffect(() => {
     loadContacts();
-    const t = setInterval(loadContacts, 6000);
-    return () => clearInterval(t);
+    const t = setInterval(loadContacts, 8000);
+    const handleVisChange = () => {
+      if (!document.hidden) {
+        loadContacts();
+        if (activeIdRef.current) loadDeltaMessages(activeIdRef.current);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisChange);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', handleVisChange);
+    };
   }, []);
 
-  // conversation poll
+  // conversation poll with lightweight delta queries
   useEffect(() => {
     activeIdRef.current = active?.id || null;
     if (!active) return;
-    loadMessages(active.id);
-    const t = setInterval(() => loadMessages(active.id), 2500);
+    loadInitialMessages(active.id);
+    const t = setInterval(() => loadDeltaMessages(active.id), 2500);
     return () => clearInterval(t);
   }, [active]);
 
@@ -116,6 +161,7 @@ export default function Chat() {
     setActive(c);
     setMessages([]);
     setErr('');
+    lastMsgIdRef.current = 0;
   };
 
   const send = async (textToSend) => {
@@ -123,8 +169,15 @@ export default function Chat() {
     if (!body || !active) return;
     setInput('');
     try {
-      await api.post(`/chat/${active.id}`, { body });
-      loadMessages(active.id);
+      const res = await api.post(`/chat/${active.id}`, { body });
+      if (res.data.message) {
+        const sentMsg = res.data.message;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === sentMsg.id)) return prev;
+          return [...prev, sentMsg];
+        });
+        lastMsgIdRef.current = Math.max(lastMsgIdRef.current, sentMsg.id);
+      }
       loadContacts();
     } catch (e) {
       setErr(e.response?.data?.message || 'Send failed');
