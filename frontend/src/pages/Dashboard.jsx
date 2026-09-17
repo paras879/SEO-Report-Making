@@ -105,7 +105,7 @@ const STATUS_COLOR = {
   admin_approved: 'from-emerald-500 to-teal-600',
 };
 
-function StatusChart({ data }) {
+function StatusChart({ data, rangeLabel }) {
   const total = data.reduce((acc, d) => acc + (parseInt(d.count, 10) || 0), 0);
   const max = Math.max(1, ...data.map((d) => d.count));
 
@@ -115,9 +115,9 @@ function StatusChart({ data }) {
         <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-2xl mb-2.5">
           📋
         </div>
-        <p className="text-xs font-bold text-slate-700">No report status data yet</p>
+        <p className="text-xs font-bold text-slate-700">No report status data for {rangeLabel}</p>
         <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">
-          Reports created across teams will automatically visualize their lifecycle distribution here.
+          Reports created in this selected date filter will automatically visualize their lifecycle distribution here.
         </p>
       </div>
     );
@@ -154,7 +154,7 @@ function StatusChart({ data }) {
   );
 }
 
-function WeekChart({ data }) {
+function TrendChart({ data, rangeLabel }) {
   const total = data.reduce((acc, d) => acc + (parseInt(d.count, 10) || 0), 0);
   const max = Math.max(1, ...data.map((d) => d.count));
 
@@ -164,7 +164,7 @@ function WeekChart({ data }) {
         <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-2xl mb-2.5">
           📈
         </div>
-        <p className="text-xs font-bold text-slate-700">No submissions in the last 7 days</p>
+        <p className="text-xs font-bold text-slate-700">No activity for {rangeLabel}</p>
         <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs">
           Daily SEO campaign progress and submitted logs will show live volume spikes here.
         </p>
@@ -173,12 +173,12 @@ function WeekChart({ data }) {
   }
 
   return (
-    <div className="flex items-end justify-between gap-3 h-40 pt-4">
+    <div className="flex items-end justify-between gap-2 md:gap-3 h-40 pt-4 overflow-x-auto">
       {data.map((d) => {
         const count = parseInt(d.count, 10) || 0;
         const heightPct = (count / max) * 100;
         return (
-          <div key={d.day} className="flex-1 flex flex-col items-center justify-end h-full group">
+          <div key={d.day} className="flex-1 min-w-[28px] flex flex-col items-center justify-end h-full group">
             <span className="text-[11px] font-extrabold text-slate-700 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {count}
             </span>
@@ -186,7 +186,7 @@ function WeekChart({ data }) {
               className="w-full bg-gradient-to-t from-brand-600 to-indigo-500 rounded-xl group-hover:from-brand-500 group-hover:to-cyan-500 transition-all duration-300 shadow-sm"
               style={{ height: `${heightPct}%`, minHeight: count ? '8px' : '4px' }}
             />
-            <span className="text-[10px] font-bold text-slate-400 mt-2">
+            <span className="text-[10px] font-bold text-slate-400 mt-2 whitespace-nowrap">
               {d.day?.slice(5)}
             </span>
           </div>
@@ -205,7 +205,13 @@ export default function Dashboard() {
   const [hasTodayReport, setHasTodayReport] = useState(true);
   const [streakDays, setStreakDays] = useState(0);
 
-  // Formatted date
+  // Time & Date Filter State
+  const [dateRange, setDateRange] = useState('7d'); // 'today', 'yesterday', '7d', '30d', 'custom'
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [loadingCharts, setLoadingCharts] = useState(false);
+
+  // Formatted date string
   const todayFormatted = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
       weekday: 'long',
@@ -215,6 +221,20 @@ export default function Dashboard() {
     });
   }, []);
 
+  // Compute active range label for charts
+  const rangeLabel = useMemo(() => {
+    if (dateRange === 'today') return 'Today';
+    if (dateRange === 'yesterday') return 'Yesterday';
+    if (dateRange === '7d') return 'Past 7 Days';
+    if (dateRange === '30d') return 'Past 30 Days';
+    if (dateRange === 'custom') {
+      if (customFrom && customTo) return `${customFrom} to ${customTo}`;
+      return 'Custom Range';
+    }
+    return 'All Time';
+  }, [dateRange, customFrom, customTo]);
+
+  // Load initial Stats & Employee details
   useEffect(() => {
     api.get('/dashboard/stats')
       .then((r) => {
@@ -222,10 +242,6 @@ export default function Dashboard() {
         if (r.data.recent_reports) setRecentReports(r.data.recent_reports);
       })
       .catch((e) => setErr(e.response?.data?.message || 'Failed to load dashboard metrics'));
-
-    api.get('/dashboard/charts')
-      .then((r) => setCharts({ byStatus: r.data.byStatus || [], last7: r.data.last7 || [] }))
-      .catch(() => {});
 
     if (user.role === 'employee') {
       api.get('/reports', { params: { limit: 14 } }).then((r) => {
@@ -239,6 +255,33 @@ export default function Dashboard() {
       }).catch(() => {});
     }
   }, [user.role]);
+
+  // Load Charts with active date filter
+  const loadCharts = () => {
+    setLoadingCharts(true);
+    const params = { range: dateRange };
+    if (dateRange === 'custom') {
+      if (!customFrom || !customTo) {
+        setLoadingCharts(false);
+        return;
+      }
+      params.from = customFrom;
+      params.to = customTo;
+    }
+    api.get('/dashboard/charts', { params })
+      .then((r) => {
+        setCharts({
+          byStatus: r.data.byStatus || [],
+          last7: r.data.trend || r.data.last7 || [],
+        });
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCharts(false));
+  };
+
+  useEffect(() => {
+    loadCharts();
+  }, [dateRange, customFrom, customTo]);
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in">
@@ -549,6 +592,69 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* DATE & TIME FILTER TOOLBAR */}
+      <div className="card p-4 bg-white border border-slate-200/90 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center text-sm font-bold">
+            📅
+          </div>
+          <div>
+            <h3 className="text-xs font-extrabold text-slate-900">Analytics Time Filter</h3>
+            <p className="text-[11px] text-slate-400">Filter reports distribution and timeline by date</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Quick Date Pills */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            {[
+              { key: 'today', label: 'Today' },
+              { key: 'yesterday', label: 'Yesterday' },
+              { key: '7d', label: '7 Days' },
+              { key: '30d', label: '30 Days' },
+              { key: 'custom', label: 'Custom' },
+            ].map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setDateRange(p.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  dateRange === p.key
+                    ? 'bg-white text-brand-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Pickers when 'custom' is active */}
+          {dateRange === 'custom' && (
+            <div className="flex items-center gap-2 animate-fade-in">
+              <input
+                type="date"
+                className="input py-1 px-2.5 text-xs rounded-xl bg-slate-50 border-slate-200 w-36"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+              />
+              <span className="text-xs text-slate-400 font-bold">to</span>
+              <input
+                type="date"
+                className="input py-1 px-2.5 text-xs rounded-xl bg-slate-50 border-slate-200 w-36"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+              />
+            </div>
+          )}
+
+          {loadingCharts && (
+            <span className="text-xs font-bold text-brand-600 animate-pulse">
+              Loading...
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Charts & Analytics Visuals */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Reports Status Distribution */}
@@ -559,30 +665,30 @@ export default function Dashboard() {
                 <span>📊</span>
                 <span>Reports Status Distribution</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Real-time status breakdown across campaigns</p>
+              <p className="text-xs text-slate-400 mt-0.5">Showing status breakdown for: <strong className="text-slate-700">{rangeLabel}</strong></p>
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-              Live Flow
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+              {rangeLabel}
             </span>
           </div>
-          <StatusChart data={charts.byStatus} />
+          <StatusChart data={charts.byStatus} rangeLabel={rangeLabel} />
         </div>
 
-        {/* 7-Day Submission Trend */}
+        {/* Trend Volume Chart */}
         <div className="card p-6 bg-white border border-slate-200/90 rounded-2xl shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
             <div>
               <h3 className="font-extrabold text-base text-slate-900 tracking-tight flex items-center gap-2">
                 <span>📈</span>
-                <span>7-Day Submission Trend</span>
+                <span>Submission Volume Trend</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">Daily activity volume over the past week</p>
+              <p className="text-xs text-slate-400 mt-0.5">Daily activity counts for: <strong className="text-slate-700">{rangeLabel}</strong></p>
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-              Weekly Activity
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              {rangeLabel}
             </span>
           </div>
-          <WeekChart data={charts.last7} />
+          <TrendChart data={charts.last7} rangeLabel={rangeLabel} />
         </div>
       </div>
 

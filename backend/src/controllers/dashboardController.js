@@ -86,32 +86,100 @@ async function stats(req, res, next) {
   }
 }
 
-// GET /api/dashboard/charts   -> status breakdown + last 7 days (role-scoped)
+// Helper function to build date conditions
+function getDateCondition(query, dateColumn = 'report_date') {
+  const { range, from, to } = query;
+  if (range === 'today') {
+    return { sql: `${dateColumn} = CURRENT_DATE`, params: [] };
+  } else if (range === 'yesterday') {
+    return { sql: `${dateColumn} = (CURRENT_DATE - INTERVAL '1 day')::date`, params: [] };
+  } else if (range === '7d') {
+    return { sql: `${dateColumn} >= (CURRENT_DATE - INTERVAL '6 days')::date AND ${dateColumn} <= CURRENT_DATE`, params: [] };
+  } else if (range === '30d') {
+    return { sql: `${dateColumn} >= (CURRENT_DATE - INTERVAL '29 days')::date AND ${dateColumn} <= CURRENT_DATE`, params: [] };
+  } else if (range === 'custom' && from && to) {
+    return { sql: `${dateColumn} >= $FROM_PARAM AND ${dateColumn} <= $TO_PARAM`, custom: { from, to } };
+  }
+  return null;
+}
+
+// GET /api/dashboard/charts   -> status breakdown + trend (role-scoped + date filter)
 async function charts(req, res, next) {
   try {
     const role = req.user.role;
-    // role scope
-    let scope = '';
-    const params = [];
-    if (role === 'employee') { scope = 'WHERE employee_id = $1'; params.push(req.user.id); }
-    else if (role === 'team_lead') { scope = 'WHERE team_lead_id = $1'; params.push(req.user.id); }
-    else if (role === 'admin') { scope = "WHERE status IN ('forwarded','admin_approved','admin_rejected')"; }
-    else if (role === 'developer') { scope = 'WHERE employee_id = -1'; } // developer has no reports
-    // super_admin -> all
+    const { range = '7d', from, to } = req.query;
 
+    // Role-based scope
+    let roleConditions = [];
+    const baseParams = [];
+    let paramIdx = 1;
+
+    if (role === 'employee') {
+      roleConditions.push(`employee_id = $${paramIdx++}`);
+      baseParams.push(req.user.id);
+    } else if (role === 'team_lead') {
+      roleConditions.push(`team_lead_id = $${paramIdx++}`);
+      baseParams.push(req.user.id);
+    } else if (role === 'admin') {
+      roleConditions.push(`status IN ('forwarded','admin_approved','admin_rejected')`);
+    } else if (role === 'developer') {
+      roleConditions.push(`employee_id = -1`); // developer has no direct reports
+    }
+
+    // Date filtering for byStatus
+    const dateCond = getDateCondition(req.query, 'report_date');
+    let statusConditions = [...roleConditions];
+    let statusParams = [...baseParams];
+
+    if (dateCond) {
+      if (dateCond.custom) {
+        statusConditions.push(`report_date >= $${paramIdx++} AND report_date <= $${paramIdx++}`);
+        statusParams.push(dateCond.custom.from, dateCond.custom.to);
+      } else {
+        statusConditions.push(dateCond.sql);
+      }
+    }
+
+    const statusWhere = statusConditions.length ? `WHERE ${statusConditions.join(' AND ')}` : '';
     const byStatus = await pool.query(
-      `SELECT status, COUNT(*)::int AS count FROM reports ${scope} GROUP BY status`, params
+      `SELECT status, COUNT(*)::int AS count FROM reports ${statusWhere} GROUP BY status`,
+      statusParams
     );
 
-    // last 7 days (report count per day)
-    const dayScope = scope ? scope + ' AND ' : 'WHERE ';
-    const last7 = await pool.query(
+    // Trend / Daily Volume series
+    let trendWhere = [...roleConditions];
+    let trendParams = [...baseParams];
+    let tIdx = paramIdx;
+
+    if (range === 'today') {
+      trendWhere.push(`report_date = CURRENT_DATE`);
+    } else if (range === 'yesterday') {
+      trendWhere.push(`report_date = (CURRENT_DATE - INTERVAL '1 day')::date`);
+    } else if (range === '30d') {
+      trendWhere.push(`report_date >= (CURRENT_DATE - INTERVAL '29 days')::date AND report_date <= CURRENT_DATE`);
+    } else if (range === 'custom' && from && to) {
+      trendWhere.push(`report_date >= $${tIdx++} AND report_date <= $${tIdx++}`);
+      trendParams.push(from, to);
+    } else {
+      // default 7 days
+      trendWhere.push(`report_date >= (CURRENT_DATE - INTERVAL '6 days')::date AND report_date <= CURRENT_DATE`);
+    }
+
+    const trendWhereClause = trendWhere.length ? `WHERE ${trendWhere.join(' AND ')}` : '';
+    const trendQuery = await pool.query(
       `SELECT report_date::date AS day, COUNT(*)::int AS count
-       FROM reports ${dayScope} report_date >= (CURRENT_DATE - INTERVAL '6 days')
-       GROUP BY day ORDER BY day`, params
+       FROM reports ${trendWhereClause}
+       GROUP BY day ORDER BY day ASC`,
+      trendParams
     );
 
-    res.json({ success: true, byStatus: byStatus.rows, last7: last7.rows });
+    res.json({
+      success: true,
+      range,
+      byStatus: byStatus.rows,
+      last7: trendQuery.rows,
+      trend: trendQuery.rows,
+    });
   } catch (err) {
     next(err);
   }
