@@ -459,35 +459,35 @@ export default function Chat() {
                   return (
                     <div
                       key={m.id}
-                      className={`flex items-end gap-2 group ${mine ? 'justify-end' : 'justify-start'}`}
+                      className={`flex items-end gap-2.5 group ${mine ? 'justify-end' : 'justify-start'}`}
                     >
                       {!mine && (
                         <div
-                          className={`w-7 h-7 rounded-xl bg-gradient-to-tr ${(ROLE_THEMES[active.role] || ROLE_THEMES.employee).avatar} text-white flex items-center justify-center text-[10px] font-bold shadow-xs shrink-0 mb-1`}
+                          className={`w-8 h-8 rounded-xl bg-gradient-to-tr ${(ROLE_THEMES[active.role] || ROLE_THEMES.employee).avatar} text-white flex items-center justify-center text-[10px] font-extrabold shadow-sm shrink-0 mb-1`}
                         >
                           {initials(active.name)}
                         </div>
                       )}
 
                       <div
-                        className={`relative max-w-[80%] md:max-w-[70%] rounded-3xl px-4.5 py-3 shadow-xs transition-all ${
+                        className={`relative min-w-[140px] max-w-[85%] md:max-w-[75%] rounded-2xl px-4.5 py-3 shadow-sm transition-all ${
                           mine
-                            ? 'bg-gradient-to-r from-brand-600 via-brand-600 to-indigo-600 text-white rounded-br-xs shadow-brand-700/10'
-                            : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-xs'
+                            ? 'bg-gradient-to-r from-brand-600 via-brand-600 to-indigo-600 text-white rounded-br-sm shadow-brand-700/15'
+                            : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-sm shadow-slate-200/50'
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed font-normal">
+                        <p className="text-sm whitespace-pre-wrap break-words leading-relaxed font-normal select-text pr-1">
                           {m.body}
                         </p>
 
                         <div
                           className={`flex items-center justify-end gap-1.5 text-[10px] mt-1.5 font-medium ${
-                            mine ? 'text-brand-200' : 'text-slate-400'
+                            mine ? 'text-brand-100/90' : 'text-slate-400'
                           }`}
                         >
                           <span>{formatMessageTime(m.created_at)}</span>
                           {mine && (
-                            <span title="Delivered" className="text-[11px] font-bold">
+                            <span title="Delivered" className="text-[11px] font-bold tracking-tighter text-cyan-200">
                               ✓✓
                             </span>
                           )}
@@ -498,7 +498,7 @@ export default function Chat() {
                           onClick={() => handleCopyText(m.body, m.id)}
                           className={`absolute top-2 ${
                             mine ? '-left-8' : '-right-8'
-                          } opacity-0 group-hover:opacity-100 p-1 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 text-[10px] shadow-sm transition-all`}
+                          } opacity-0 group-hover:opacity-100 p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 text-[11px] shadow-sm transition-all`}
                           title="Copy message"
                         >
                           {copiedId === m.id ? '✓' : '📋'}
