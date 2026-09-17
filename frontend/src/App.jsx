@@ -15,6 +15,9 @@ import Notes from './pages/Notes';
 import NoteCompose from './pages/NoteCompose';
 import NoteDetail from './pages/NoteDetail';
 import Chat from './pages/Chat';
+import DevRequests from './pages/DevRequests';
+import DevRequestForm from './pages/DevRequestForm';
+import DevRequestDetail from './pages/DevRequestDetail';
 
 // wrap a page with the app layout + auth
 const P = ({ children, roles }) => (
@@ -45,6 +48,10 @@ export default function App() {
       <Route path="/notes/:id" element={<P><NoteDetail /></P>} />
 
       <Route path="/chat" element={<P><Chat /></P>} />
+
+      <Route path="/dev-requests" element={<P><DevRequests /></P>} />
+      <Route path="/dev-requests/new" element={<P roles={['employee']}><DevRequestForm /></P>} />
+      <Route path="/dev-requests/:id" element={<P><DevRequestDetail /></P>} />
 
       <Route path="/audit" element={<P roles={['super_admin']}><AuditLogs /></P>} />
       <Route path="/change-password" element={<P><ChangePassword /></P>} />

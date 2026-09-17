@@ -230,7 +230,45 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ---------- DEVELOPER ROLE + DEV REQUESTS ----------
+-- add 'developer' to the user_role enum (safe / idempotent; PG 12+)
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'developer';
+
+-- Site-issue tickets raised by employees: Employee -> Team Lead -> Developer -> resolved
+CREATE TABLE IF NOT EXISTS dev_requests (
+  id            SERIAL PRIMARY KEY,
+  employee_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  team_id       INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+  team_lead_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  developer_id  INTEGER REFERENCES users(id) ON DELETE SET NULL,  -- assigned developer
+  title         VARCHAR(200) NOT NULL,
+  description   TEXT,
+  sites         JSONB NOT NULL DEFAULT '[]',   -- [{ name, urls: [] }]  multiple sites, each multiple URLs
+  priority      VARCHAR(10) NOT NULL DEFAULT 'medium',
+  status        VARCHAR(30) NOT NULL DEFAULT 'submitted', -- submitted / tl_rejected / forwarded / resolved
+  current_level VARCHAR(20) NOT NULL DEFAULT 'team_lead',  -- employee / team_lead / developer
+  resolved_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- trace + comments for a dev request (admin can read all)
+CREATE TABLE IF NOT EXISTS dev_request_events (
+  id         SERIAL PRIMARY KEY,
+  request_id INTEGER NOT NULL REFERENCES dev_requests(id) ON DELETE CASCADE,
+  actor_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  actor_role user_role,
+  action     VARCHAR(30) NOT NULL,   -- submitted / forwarded / resolved / rejected / commented
+  message    TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ---------- Indexes ----------
+CREATE INDEX IF NOT EXISTS idx_devreq_emp   ON dev_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_devreq_tl    ON dev_requests(team_lead_id);
+CREATE INDEX IF NOT EXISTS idx_devreq_dev   ON dev_requests(developer_id);
+CREATE INDEX IF NOT EXISTS idx_devreq_status ON dev_requests(status);
+CREATE INDEX IF NOT EXISTS idx_devreq_events ON dev_request_events(request_id);
 CREATE INDEX IF NOT EXISTS idx_users_role      ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_team      ON users(team_id);
 CREATE INDEX IF NOT EXISTS idx_teams_lead      ON teams(team_lead_id);

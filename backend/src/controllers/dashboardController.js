@@ -37,6 +37,15 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM users WHERE team_id=(SELECT team_id FROM users WHERE id=$1) AND role='employee') AS my_employees
       `, [req.user.id]);
       out.summary = q.rows[0];
+    } else if (role === 'developer') {
+      const q = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status='forwarded') AS pending,
+          COUNT(*) FILTER (WHERE status='resolved') AS resolved,
+          COUNT(*) AS total_assigned
+        FROM dev_requests WHERE developer_id=$1
+      `, [req.user.id]);
+      out.summary = q.rows[0];
     } else {
       const q = await pool.query(`
         SELECT
@@ -65,6 +74,7 @@ async function charts(req, res, next) {
     if (role === 'employee') { scope = 'WHERE employee_id = $1'; params.push(req.user.id); }
     else if (role === 'team_lead') { scope = 'WHERE team_lead_id = $1'; params.push(req.user.id); }
     else if (role === 'admin') { scope = "WHERE status IN ('forwarded','admin_approved','admin_rejected')"; }
+    else if (role === 'developer') { scope = 'WHERE employee_id = -1'; } // developer has no reports
     // super_admin -> all
 
     const byStatus = await pool.query(

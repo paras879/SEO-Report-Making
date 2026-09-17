@@ -61,6 +61,7 @@ app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/dev-requests', require('./routes/devRequestRoutes'));
 
 // ---- 404 + error ----
 app.use(notFound);

@@ -9,26 +9,39 @@ const ROLE_LABEL = {
   admin: 'Admin',
   team_lead: 'Team Lead',
   employee: 'Employee',
+  developer: 'Developer',
 };
 
 // role -> menu items
 function menuFor(role) {
   const m = [{ to: '/', label: 'Dashboard', icon: '📊' }];
+
+  // Developer: minimal menu (assigned site-issue requests + chat)
+  if (role === 'developer') {
+    m.push({ to: '/dev-requests', label: 'Assigned Requests', icon: '🛠️' });
+    m.push({ to: '/chat', label: 'Chat', icon: '💬' });
+    return m;
+  }
+
   if (role === 'super_admin') {
     m.push({ to: '/users', label: 'Users', icon: '👥' });
     m.push({ to: '/teams', label: 'Teams', icon: '🗂️' });
     m.push({ to: '/reports', label: 'All Reports', icon: '📄' });
+    m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
     m.push({ to: '/audit', label: 'Audit Logs', icon: '🛡️' });
   } else if (role === 'admin') {
     m.push({ to: '/users', label: 'Users', icon: '👥' });
     m.push({ to: '/teams', label: 'Teams', icon: '🗂️' });
     m.push({ to: '/reports', label: 'Forwarded Reports', icon: '📄' });
+    m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
   } else if (role === 'team_lead') {
     m.push({ to: '/teams', label: 'My Team', icon: '🗂️' });
     m.push({ to: '/reports', label: 'Team Reports', icon: '📄' });
+    m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
   } else {
     m.push({ to: '/reports', label: 'My Reports', icon: '📄' });
     m.push({ to: '/reports/new', label: 'New Report', icon: '➕' });
+    m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
   }
   // Notes + Chat sabke liye
   m.push({ to: '/notes', label: role === 'employee' ? 'My Notes' : 'Notes', icon: '📝' });

@@ -6,8 +6,8 @@ const { BCRYPT_ROUNDS } = require('../config/security');
 
 // kaun kaunse role bana sakta hai
 const CREATE_MATRIX = {
-  super_admin: ['admin', 'team_lead', 'employee'],
-  admin: ['team_lead', 'employee'],
+  super_admin: ['admin', 'team_lead', 'employee', 'developer'],
+  admin: ['team_lead', 'employee', 'developer'],
 };
 
 const PUBLIC_COLS =

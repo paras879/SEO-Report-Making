@@ -224,6 +224,13 @@ export default function Dashboard() {
             <Stat label="Approved Reports" value={s.approved} icon="✅" color="emerald" />
           </>
         )}
+        {user.role === 'developer' && (
+          <>
+            <Stat label="Assigned to Me" value={s.total_assigned} icon="🛠️" color="brand" />
+            <Stat label="Open / Pending" value={s.pending} icon="⏳" color="amber" />
+            <Stat label="Resolved" value={s.resolved} icon="✅" color="emerald" />
+          </>
+        )}
       </div>
 
       {/* Charts Section */}
