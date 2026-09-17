@@ -230,9 +230,10 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ---------- DEVELOPER ROLE + DEV REQUESTS ----------
--- add 'developer' to the user_role enum (safe / idempotent; PG 12+)
+-- ---------- DEVELOPER & DESIGNER ROLES + DEV / DESIGN REQUESTS ----------
+-- add 'developer' and 'designer' to the user_role enum (safe / idempotent; PG 12+)
 ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'developer';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'designer';
 
 -- Site-issue tickets raised by employees: Employee -> Team Lead -> Developer -> resolved
 CREATE TABLE IF NOT EXISTS dev_requests (
@@ -277,6 +278,40 @@ CREATE TABLE IF NOT EXISTS dev_request_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Graphic & Design requests raised by employees: Employee -> Team Lead -> Designer -> resolved
+CREATE TABLE IF NOT EXISTS design_requests (
+  id                SERIAL PRIMARY KEY,
+  employee_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  team_id           INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+  team_lead_id      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  designer_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,  -- assigned designer
+  title             VARCHAR(200),                                     -- optional title
+  category          VARCHAR(80) NOT NULL DEFAULT 'On-Page',           -- On-Page, Blog Request, Social Media / Infographics, Custom Graphic
+  blog_category     VARCHAR(80),                                      -- Information, Lexical, Case Studies, Other
+  keywords          TEXT,                                             -- keywords for graphic/blog
+  points_to_include TEXT,                                             -- specific points to include
+  priority          VARCHAR(10) NOT NULL DEFAULT 'medium',
+  status            VARCHAR(30) NOT NULL DEFAULT 'submitted',        -- submitted / tl_rejected / forwarded / in_progress / under_qa / resolved / reopened
+  current_level     VARCHAR(20) NOT NULL DEFAULT 'team_lead',         -- employee / team_lead / designer
+  client_name       VARCHAR(160),
+  due_date          DATE,
+  attachments       JSONB NOT NULL DEFAULT '[]',                      -- [{ name, url, type, size }]
+  hours_spent       NUMERIC(5,2) NOT NULL DEFAULT 0,
+  resolved_at       TIMESTAMPTZ,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS design_request_events (
+  id         SERIAL PRIMARY KEY,
+  request_id INTEGER NOT NULL REFERENCES design_requests(id) ON DELETE CASCADE,
+  actor_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  actor_role user_role,
+  action     VARCHAR(30) NOT NULL,
+  message    TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ---------- Indexes ----------
 CREATE INDEX IF NOT EXISTS idx_devreq_emp   ON dev_requests(employee_id);
 CREATE INDEX IF NOT EXISTS idx_devreq_tl    ON dev_requests(team_lead_id);
@@ -286,6 +321,14 @@ CREATE INDEX IF NOT EXISTS idx_devreq_cat    ON dev_requests(category);
 CREATE INDEX IF NOT EXISTS idx_devreq_due    ON dev_requests(due_date);
 CREATE INDEX IF NOT EXISTS idx_devreq_client ON dev_requests(client_name);
 CREATE INDEX IF NOT EXISTS idx_devreq_events ON dev_request_events(request_id);
+CREATE INDEX IF NOT EXISTS idx_designreq_emp    ON design_requests(employee_id);
+CREATE INDEX IF NOT EXISTS idx_designreq_tl     ON design_requests(team_lead_id);
+CREATE INDEX IF NOT EXISTS idx_designreq_des    ON design_requests(designer_id);
+CREATE INDEX IF NOT EXISTS idx_designreq_status ON design_requests(status);
+CREATE INDEX IF NOT EXISTS idx_designreq_cat    ON design_requests(category);
+CREATE INDEX IF NOT EXISTS idx_designreq_bcat   ON design_requests(blog_category);
+CREATE INDEX IF NOT EXISTS idx_designreq_events ON design_request_events(request_id);
+
 CREATE INDEX IF NOT EXISTS idx_users_role      ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_team      ON users(team_id);
 CREATE INDEX IF NOT EXISTS idx_teams_lead      ON teams(team_lead_id);

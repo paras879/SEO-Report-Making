@@ -18,6 +18,9 @@ import Chat from './pages/Chat';
 import DevRequests from './pages/DevRequests';
 import DevRequestForm from './pages/DevRequestForm';
 import DevRequestDetail from './pages/DevRequestDetail';
+import DesignRequests from './pages/DesignRequests';
+import DesignRequestForm from './pages/DesignRequestForm';
+import DesignRequestDetail from './pages/DesignRequestDetail';
 
 // wrap a page with the app layout + auth
 const P = ({ children, roles }) => (
@@ -52,6 +55,10 @@ export default function App() {
       <Route path="/dev-requests" element={<P><DevRequests /></P>} />
       <Route path="/dev-requests/new" element={<P roles={['employee']}><DevRequestForm /></P>} />
       <Route path="/dev-requests/:id" element={<P><DevRequestDetail /></P>} />
+
+      <Route path="/design-requests" element={<P><DesignRequests /></P>} />
+      <Route path="/design-requests/new" element={<P roles={['employee']}><DesignRequestForm /></P>} />
+      <Route path="/design-requests/:id" element={<P><DesignRequestDetail /></P>} />
 
       <Route path="/audit" element={<P roles={['super_admin']}><AuditLogs /></P>} />
       <Route path="/change-password" element={<P><ChangePassword /></P>} />
