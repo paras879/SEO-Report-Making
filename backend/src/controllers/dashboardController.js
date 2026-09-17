@@ -65,10 +65,21 @@ async function stats(req, res, next) {
           COUNT(*) FILTER (WHERE status='tl_rejected') AS returned,
           COUNT(*) FILTER (WHERE status='admin_approved') AS approved,
           COUNT(*) AS total,
-          (SELECT COUNT(*) FROM dev_requests WHERE employee_id=$1 AND status NOT IN ('resolved')) AS open_dev_tickets
+          (SELECT COUNT(*) FROM dev_requests WHERE employee_id=$1 AND status NOT IN ('resolved')) AS open_dev_tickets,
+          (SELECT t.name FROM users u LEFT JOIN teams t ON t.id = u.team_id WHERE u.id = $1) AS team_name,
+          (SELECT tl.name FROM users u LEFT JOIN teams t ON t.id = u.team_id LEFT JOIN users tl ON tl.id = t.team_lead_id WHERE u.id = $1) AS team_lead_name
         FROM reports WHERE employee_id=$1
       `, [req.user.id]);
       out.summary = q.rows[0];
+
+      // Fetch employee's recent reports
+      const rec = await pool.query(`
+        SELECT id, report_date, status, created_at,
+               (data->>'client_name') AS client_name,
+               (data->>'target_url') AS target_url
+        FROM reports WHERE employee_id=$1 ORDER BY created_at DESC LIMIT 5
+      `, [req.user.id]);
+      out.recent_reports = rec.rows;
     }
 
     res.json({ success: true, ...out });
