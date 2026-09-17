@@ -138,18 +138,29 @@ async function guardTarget(req, res) {
   return target;
 }
 
-// PATCH /api/users/:id   (name, email, is_active, team_id)
+// PATCH /api/users/:id   (name, email, username, role, is_active, team_id)
 async function updateUser(req, res, next) {
   try {
     if (!(await guardTarget(req, res))) return;
-    const { name, email, is_active, team_id } = req.body;
+    const { name, email, username, role, is_active, team_id } = req.body;
     const fields = [];
     const params = [];
     let i = 1;
-    if (name !== undefined) { fields.push(`name = $${i++}`); params.push(name); }
-    if (email !== undefined) { fields.push(`email = $${i++}`); params.push(String(email).toLowerCase()); }
+    if (name !== undefined) { fields.push(`name = $${i++}`); params.push(name.trim()); }
+    if (email !== undefined) { fields.push(`email = $${i++}`); params.push(String(email).toLowerCase().trim()); }
+    if (username !== undefined) { fields.push(`username = $${i++}`); params.push(username.trim()); }
+    if (role !== undefined) {
+      if (req.user.role === 'admin' && ['super_admin', 'admin'].includes(role)) {
+        return res.status(403).json({ success: false, message: 'Admin cannot assign Super Admin or Admin role' });
+      }
+      fields.push(`role = $${i++}`);
+      params.push(role);
+    }
     if (is_active !== undefined) { fields.push(`is_active = $${i++}`); params.push(is_active); }
-    if (team_id !== undefined) { fields.push(`team_id = $${i++}`); params.push(team_id); }
+    if (team_id !== undefined) {
+      fields.push(`team_id = $${i++}`);
+      params.push(team_id ? Number(team_id) : null);
+    }
     if (fields.length === 0) return res.status(400).json({ success: false, message: 'Nothing to update' });
 
     params.push(req.params.id);
@@ -158,6 +169,11 @@ async function updateUser(req, res, next) {
       params
     );
     if (!rows[0]) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // if user was made team_lead of a team -> update team table
+    if (role === 'team_lead' && team_id) {
+      await pool.query('UPDATE teams SET team_lead_id = $1, updated_at = now() WHERE id = $2', [rows[0].id, team_id]);
+    }
 
     // deactivate -> tokens revoke
     if (is_active === false) {
@@ -169,6 +185,7 @@ async function updateUser(req, res, next) {
     next(err);
   }
 }
+
 
 // POST /api/users/:id/reset-password   { newPassword }
 async function resetPassword(req, res, next) {
