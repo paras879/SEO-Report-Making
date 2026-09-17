@@ -301,6 +301,9 @@ CREATE INDEX IF NOT EXISTS idx_notes_status     ON notes(status);
 CREATE INDEX IF NOT EXISTS idx_note_events_note ON note_events(note_id);
 CREATE INDEX IF NOT EXISTS idx_msg_pair    ON messages(sender_id, receiver_id);
 CREATE INDEX IF NOT EXISTS idx_msg_inbox   ON messages(receiver_id, is_read);
+-- SCALE: chat "last message" lookup (both directions) stays fast even with huge history
+CREATE INDEX IF NOT EXISTS idx_msg_sr_time ON messages(sender_id, receiver_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_msg_rs_time ON messages(receiver_id, sender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_notif_user      ON notifications(user_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_audit_user      ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_refresh_user    ON refresh_tokens(user_id);

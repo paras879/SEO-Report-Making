@@ -67,4 +67,7 @@ app.use('/api/dev-requests', require('./routes/devRequestRoutes'));
 app.use(notFound);
 app.use(errorHandler);
 
+// ---- Background maintenance: DB retention cleanup (so the DB never fills up) ----
+require('./utils/maintenance').startMaintenance();
+
 module.exports = app;

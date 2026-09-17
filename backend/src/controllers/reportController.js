@@ -1,4 +1,4 @@
-const { pool } = require('../config/db');
+const { pool, withTx } = require('../config/db');
 const { logAudit } = require('../utils/audit');
 const { notify } = require('../utils/notify');
 
@@ -63,6 +63,23 @@ async function canAccessReport(user, report) {
   }
   // employee
   return report.employee_id === user.id;
+}
+
+// runs fn(client) inside a transaction (BEGIN/COMMIT, ROLLBACK on error)
+// -> status-change + its history row are written together (all-or-nothing)
+async function withTx(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // POST /api/reports   (employee) -> draft ya direct submit
@@ -171,21 +188,26 @@ async function submitReport(req, res, next) {
     const team = await pool.query('SELECT team_lead_id FROM teams WHERE id = $1', [report.team_id]);
     const teamLeadId = team.rows[0]?.team_lead_id || null;
 
-    const { rows } = await pool.query(
-      `UPDATE reports SET status='submitted', current_level='team_lead', team_lead_id=$1, submitted_at=now(), updated_at=now()
-       WHERE id=$2 RETURNING ${REPORT_COLS}`,
-      [teamLeadId, req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
-       VALUES ($1,$2,'employee','submitted','employee','team_lead',$3)`,
-      [report.id, req.user.id, 'Submitted to team lead']
-    );
+    const out = await withTx(async (client) => {
+      const upd = await client.query(
+        `UPDATE reports SET status='submitted', current_level='team_lead', team_lead_id=$1, submitted_at=now(), updated_at=now()
+         WHERE id=$2 AND employee_id=$3 AND status IN ('draft','tl_rejected') RETURNING ${REPORT_COLS}`,
+        [teamLeadId, req.params.id, req.user.id]
+      );
+      if (upd.rowCount === 0) return null;
+      await client.query(
+        `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
+         VALUES ($1,$2,'employee','submitted','employee','team_lead',$3)`,
+        [report.id, req.user.id, 'Submitted to team lead']
+      );
+      return upd.rows[0];
+    });
+    if (!out) return res.status(409).json({ success: false, message: 'Report state changed — please refresh' });
     if (teamLeadId) {
       await notify({ userId: teamLeadId, title: 'Report submitted', message: `${req.user.name} submitted a report`, reportId: report.id });
     }
     await logAudit({ userId: req.user.id, action: 'report_submitted', entityType: 'report', entityId: report.id, req });
-    res.json({ success: true, report: rows[0] });
+    res.json({ success: true, report: out });
   } catch (err) {
     next(err);
   }
@@ -204,15 +226,22 @@ async function forwardReport(req, res, next) {
     if (!['submitted', 'admin_rejected'].includes(report.status)) {
       return res.status(409).json({ success: false, message: 'Only submitted reports can be forwarded' });
     }
-    const { rows } = await pool.query(
-      `UPDATE reports SET status='forwarded', current_level='admin', updated_at=now() WHERE id=$1 RETURNING ${REPORT_COLS}`,
-      [req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
-       VALUES ($1,$2,'team_lead','forwarded','team_lead','admin',$3)`,
-      [report.id, req.user.id, req.body.comment || 'Forwarded to admin']
-    );
+    const out = await withTx(async (client) => {
+      const upd = await client.query(
+        `UPDATE reports SET status='forwarded', current_level='admin', updated_at=now()
+         WHERE id=$1 AND team_lead_id=$2 AND status IN ('submitted','admin_rejected') RETURNING ${REPORT_COLS}`,
+        [req.params.id, req.user.id]
+      );
+      if (upd.rowCount === 0) return null;
+      await client.query(
+        `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
+         VALUES ($1,$2,'team_lead','forwarded','team_lead','admin',$3)`,
+        [report.id, req.user.id, req.body.comment || 'Forwarded to admin']
+      );
+      return upd.rows[0];
+    });
+    if (!out) return res.status(409).json({ success: false, message: 'Report already actioned — please refresh' });
+    const rows = [out];
     // sabhi admins ko notify
     const admins = await pool.query("SELECT id FROM users WHERE role = 'admin' AND is_active = TRUE");
     for (const a of admins.rows) {
@@ -238,15 +267,22 @@ async function tlReject(req, res, next) {
     if (report.status !== 'submitted') {
       return res.status(409).json({ success: false, message: 'Only submitted reports can be returned' });
     }
-    const { rows } = await pool.query(
-      `UPDATE reports SET status='tl_rejected', current_level='employee', updated_at=now() WHERE id=$1 RETURNING ${REPORT_COLS}`,
-      [req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
-       VALUES ($1,$2,'team_lead','rejected','team_lead','employee',$3)`,
-      [report.id, req.user.id, req.body.comment || 'Returned for revision']
-    );
+    const out = await withTx(async (client) => {
+      const upd = await client.query(
+        `UPDATE reports SET status='tl_rejected', current_level='employee', updated_at=now()
+         WHERE id=$1 AND team_lead_id=$2 AND status='submitted' RETURNING ${REPORT_COLS}`,
+        [req.params.id, req.user.id]
+      );
+      if (upd.rowCount === 0) return null;
+      await client.query(
+        `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
+         VALUES ($1,$2,'team_lead','rejected','team_lead','employee',$3)`,
+        [report.id, req.user.id, req.body.comment || 'Returned for revision']
+      );
+      return upd.rows[0];
+    });
+    if (!out) return res.status(409).json({ success: false, message: 'Report already actioned — please refresh' });
+    const rows = [out];
     await notify({ userId: report.employee_id, title: 'Report returned', message: `Team lead returned the report: ${req.body.comment || 'please revise'}`, reportId: report.id });
     await logAudit({ userId: req.user.id, action: 'report_tl_rejected', entityType: 'report', entityId: report.id, req });
     res.json({ success: true, report: rows[0] });
@@ -265,15 +301,22 @@ async function adminApprove(req, res, next) {
     if (report.status !== 'forwarded') {
       return res.status(409).json({ success: false, message: 'Only forwarded reports can be approved' });
     }
-    const { rows } = await pool.query(
-      `UPDATE reports SET status='admin_approved', current_level='admin', updated_at=now() WHERE id=$1 RETURNING ${REPORT_COLS}`,
-      [req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
-       VALUES ($1,$2,'admin','approved','admin','admin',$3)`,
-      [report.id, req.user.id, req.body.comment || 'Approved by admin']
-    );
+    const out = await withTx(async (client) => {
+      const upd = await client.query(
+        `UPDATE reports SET status='admin_approved', current_level='admin', updated_at=now()
+         WHERE id=$1 AND status='forwarded' RETURNING ${REPORT_COLS}`,
+        [req.params.id]
+      );
+      if (upd.rowCount === 0) return null;
+      await client.query(
+        `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
+         VALUES ($1,$2,'admin','approved','admin','admin',$3)`,
+        [report.id, req.user.id, req.body.comment || 'Approved by admin']
+      );
+      return upd.rows[0];
+    });
+    if (!out) return res.status(409).json({ success: false, message: 'Report already actioned by someone — please refresh' });
+    const rows = [out];
     await notify({ userId: report.team_lead_id, title: 'Report approved', message: 'Admin approved the report', reportId: report.id });
     await notify({ userId: report.employee_id, title: 'Report approved', message: 'Your report was approved by admin', reportId: report.id });
     await logAudit({ userId: req.user.id, action: 'report_admin_approved', entityType: 'report', entityId: report.id, req });
@@ -293,15 +336,22 @@ async function adminReject(req, res, next) {
     if (report.status !== 'forwarded') {
       return res.status(409).json({ success: false, message: 'Only forwarded reports can be rejected' });
     }
-    const { rows } = await pool.query(
-      `UPDATE reports SET status='admin_rejected', current_level='team_lead', updated_at=now() WHERE id=$1 RETURNING ${REPORT_COLS}`,
-      [req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
-       VALUES ($1,$2,'admin','rejected','admin','team_lead',$3)`,
-      [report.id, req.user.id, req.body.comment || 'Returned to team lead']
-    );
+    const out = await withTx(async (client) => {
+      const upd = await client.query(
+        `UPDATE reports SET status='admin_rejected', current_level='team_lead', updated_at=now()
+         WHERE id=$1 AND status='forwarded' RETURNING ${REPORT_COLS}`,
+        [req.params.id]
+      );
+      if (upd.rowCount === 0) return null;
+      await client.query(
+        `INSERT INTO report_actions (report_id, action_by, action_by_role, action, from_level, to_level, comment)
+         VALUES ($1,$2,'admin','rejected','admin','team_lead',$3)`,
+        [report.id, req.user.id, req.body.comment || 'Returned to team lead']
+      );
+      return upd.rows[0];
+    });
+    if (!out) return res.status(409).json({ success: false, message: 'Report already actioned by someone — please refresh' });
+    const rows = [out];
     await notify({ userId: report.team_lead_id, title: 'Report returned by admin', message: req.body.comment || 'Admin returned the report', reportId: report.id });
     await logAudit({ userId: req.user.id, action: 'report_admin_rejected', entityType: 'report', entityId: report.id, req });
     res.json({ success: true, report: rows[0] });

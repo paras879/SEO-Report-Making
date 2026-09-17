@@ -98,14 +98,29 @@ async function forwardNote(req, res, next) {
       return res.status(409).json({ success: false, message: 'This note cannot be forwarded' });
     }
     const message = String(req.body.message || '').slice(0, 5000) || null;
-    const { rows } = await pool.query(
-      `UPDATE notes SET status='forwarded_to_admin', current_level='admin', updated_at=now() WHERE id=$1 RETURNING *`,
-      [req.params.id]
-    );
-    await pool.query(
-      `INSERT INTO note_events (note_id, actor_id, actor_role, action, message) VALUES ($1,$2,'team_lead','forwarded',$3)`,
-      [note.id, req.user.id, message]
-    );
+    // atomic: conditional update + event together (crash-safe, no double-forward)
+    const client = await pool.connect();
+    let rows;
+    try {
+      await client.query('BEGIN');
+      const upd = await client.query(
+        `UPDATE notes SET status='forwarded_to_admin', current_level='admin', updated_at=now()
+         WHERE id=$1 AND team_lead_id=$2 AND status='sent_to_tl' RETURNING *`,
+        [req.params.id, req.user.id]
+      );
+      if (upd.rowCount === 0) { await client.query('ROLLBACK'); return res.status(409).json({ success: false, message: 'This note was already actioned — please refresh' }); }
+      await client.query(
+        `INSERT INTO note_events (note_id, actor_id, actor_role, action, message) VALUES ($1,$2,'team_lead','forwarded',$3)`,
+        [note.id, req.user.id, message]
+      );
+      await client.query('COMMIT');
+      rows = upd.rows;
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
     const admins = await pool.query("SELECT id FROM users WHERE role='admin' AND is_active=TRUE");
     for (const a of admins.rows) await notify({ userId: a.id, title: 'Note forwarded', message: `${req.user.name} forwarded a note to admin` });
     await logAudit({ userId: req.user.id, action: 'note_forwarded', entityType: 'note', entityId: note.id, req });
