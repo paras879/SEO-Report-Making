@@ -12,11 +12,14 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM users WHERE role='admin') AS admins,
           (SELECT COUNT(*) FROM users WHERE role='team_lead') AS team_leads,
           (SELECT COUNT(*) FROM users WHERE role='employee') AS employees,
+          (SELECT COUNT(*) FROM users WHERE role='developer') AS developers,
           (SELECT COUNT(*) FROM teams) AS teams,
           (SELECT COUNT(*) FROM reports) AS total_reports,
           (SELECT COUNT(*) FROM reports WHERE status='submitted') AS pending_tl,
           (SELECT COUNT(*) FROM reports WHERE status='forwarded') AS pending_admin,
-          (SELECT COUNT(*) FROM reports WHERE status='admin_approved') AS approved
+          (SELECT COUNT(*) FROM reports WHERE status='admin_approved') AS approved,
+          (SELECT COUNT(*) FROM dev_requests WHERE status NOT IN ('resolved')) AS open_dev_tickets,
+          (SELECT COUNT(*) FROM dev_requests WHERE status='resolved') AS resolved_dev_tickets
       `);
       out.summary = q.rows[0];
     } else if (role === 'admin') {
@@ -25,7 +28,9 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM reports WHERE status='forwarded') AS pending_admin,
           (SELECT COUNT(*) FROM reports WHERE status='admin_approved') AS approved,
           (SELECT COUNT(*) FROM reports WHERE status='admin_rejected') AS returned,
-          (SELECT COUNT(*) FROM teams) AS teams
+          (SELECT COUNT(*) FROM teams) AS teams,
+          (SELECT COUNT(*) FROM dev_requests WHERE status NOT IN ('resolved')) AS open_dev_tickets,
+          (SELECT COUNT(*) FROM dev_requests WHERE status='resolved') AS resolved_dev_tickets
       `);
       out.summary = q.rows[0];
     } else if (role === 'team_lead') {
@@ -34,14 +39,18 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM reports WHERE team_lead_id=$1 AND status='submitted') AS pending_review,
           (SELECT COUNT(*) FROM reports WHERE team_lead_id=$1 AND status='forwarded') AS forwarded,
           (SELECT COUNT(*) FROM reports WHERE team_lead_id=$1 AND status='admin_approved') AS approved,
-          (SELECT COUNT(*) FROM users WHERE team_id=(SELECT team_id FROM users WHERE id=$1) AND role='employee') AS my_employees
+          (SELECT COUNT(*) FROM users WHERE team_id=(SELECT team_id FROM users WHERE id=$1) AND role='employee') AS my_employees,
+          (SELECT COUNT(*) FROM dev_requests WHERE team_lead_id=$1 AND status NOT IN ('resolved')) AS open_dev_tickets
       `, [req.user.id]);
       out.summary = q.rows[0];
     } else if (role === 'developer') {
       const q = await pool.query(`
         SELECT
-          COUNT(*) FILTER (WHERE status='forwarded') AS pending,
+          COUNT(*) FILTER (WHERE status IN ('forwarded','in_progress','under_qa','reopened')) AS pending,
+          COUNT(*) FILTER (WHERE status='in_progress') AS in_progress,
+          COUNT(*) FILTER (WHERE status='under_qa') AS under_qa,
           COUNT(*) FILTER (WHERE status='resolved') AS resolved,
+          COALESCE(SUM(hours_spent), 0) AS total_hours_spent,
           COUNT(*) AS total_assigned
         FROM dev_requests WHERE developer_id=$1
       `, [req.user.id]);
@@ -53,11 +62,13 @@ async function stats(req, res, next) {
           COUNT(*) FILTER (WHERE status='submitted') AS submitted,
           COUNT(*) FILTER (WHERE status='tl_rejected') AS returned,
           COUNT(*) FILTER (WHERE status='admin_approved') AS approved,
-          COUNT(*) AS total
+          COUNT(*) AS total,
+          (SELECT COUNT(*) FROM dev_requests WHERE employee_id=$1 AND status NOT IN ('resolved')) AS open_dev_tickets
         FROM reports WHERE employee_id=$1
       `, [req.user.id]);
       out.summary = q.rows[0];
     }
+
     res.json({ success: true, ...out });
   } catch (err) {
     next(err);

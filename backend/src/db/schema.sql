@@ -245,12 +245,26 @@ CREATE TABLE IF NOT EXISTS dev_requests (
   description   TEXT,
   sites         JSONB NOT NULL DEFAULT '[]',   -- [{ name, urls: [] }]  multiple sites, each multiple URLs
   priority      VARCHAR(10) NOT NULL DEFAULT 'medium',
-  status        VARCHAR(30) NOT NULL DEFAULT 'submitted', -- submitted / tl_rejected / forwarded / resolved
+  status        VARCHAR(30) NOT NULL DEFAULT 'submitted', -- submitted / tl_rejected / forwarded / in_progress / under_qa / resolved / reopened
   current_level VARCHAR(20) NOT NULL DEFAULT 'team_lead',  -- employee / team_lead / developer
+  category      VARCHAR(60) NOT NULL DEFAULT 'other',
+  client_name   VARCHAR(160),
+  due_date      DATE,
+  credentials_note TEXT,
+  attachments   JSONB NOT NULL DEFAULT '[]',   -- [{ name, url, type, size }]
+  hours_spent   NUMERIC(5,2) NOT NULL DEFAULT 0,
   resolved_at   TIMESTAMPTZ,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Idempotent column additions for existing tables
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS category VARCHAR(60) NOT NULL DEFAULT 'other';
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS client_name VARCHAR(160);
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS due_date DATE;
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS credentials_note TEXT;
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS attachments JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE dev_requests ADD COLUMN IF NOT EXISTS hours_spent NUMERIC(5,2) NOT NULL DEFAULT 0;
 
 -- trace + comments for a dev request (admin can read all)
 CREATE TABLE IF NOT EXISTS dev_request_events (
@@ -258,7 +272,7 @@ CREATE TABLE IF NOT EXISTS dev_request_events (
   request_id INTEGER NOT NULL REFERENCES dev_requests(id) ON DELETE CASCADE,
   actor_id   INTEGER REFERENCES users(id) ON DELETE SET NULL,
   actor_role user_role,
-  action     VARCHAR(30) NOT NULL,   -- submitted / forwarded / resolved / rejected / commented
+  action     VARCHAR(30) NOT NULL,   -- submitted / forwarded / in_progress / under_qa / resolved / rejected / reopened / commented
   message    TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -268,6 +282,9 @@ CREATE INDEX IF NOT EXISTS idx_devreq_emp   ON dev_requests(employee_id);
 CREATE INDEX IF NOT EXISTS idx_devreq_tl    ON dev_requests(team_lead_id);
 CREATE INDEX IF NOT EXISTS idx_devreq_dev   ON dev_requests(developer_id);
 CREATE INDEX IF NOT EXISTS idx_devreq_status ON dev_requests(status);
+CREATE INDEX IF NOT EXISTS idx_devreq_cat    ON dev_requests(category);
+CREATE INDEX IF NOT EXISTS idx_devreq_due    ON dev_requests(due_date);
+CREATE INDEX IF NOT EXISTS idx_devreq_client ON dev_requests(client_name);
 CREATE INDEX IF NOT EXISTS idx_devreq_events ON dev_request_events(request_id);
 CREATE INDEX IF NOT EXISTS idx_users_role      ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_team      ON users(team_id);

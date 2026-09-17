@@ -192,8 +192,8 @@ export default function Dashboard() {
           <>
             <Stat label="Total Admins" value={s.admins} icon="🛡️" color="brand" />
             <Stat label="Team Leads" value={s.team_leads} icon="🎖️" color="indigo" />
-            <Stat label="Employees" value={s.employees} icon="👥" color="emerald" />
-            <Stat label="Active Teams" value={s.teams} icon="🗂️" color="slate" />
+            <Stat label="Developers" value={s.developers} icon="🛠️" color="amber" />
+            <Stat label="Open Dev Tickets" value={s.open_dev_tickets} icon="⚠️" color="amber" />
             <Stat label="Total Reports" value={s.total_reports} icon="📄" color="brand" />
             <Stat label="Pending @ TL" value={s.pending_tl} icon="⏳" color="amber" />
             <Stat label="Pending @ Admin" value={s.pending_admin} icon="📬" color="indigo" />
@@ -204,7 +204,7 @@ export default function Dashboard() {
           <>
             <Stat label="Pending Review" value={s.pending_admin} icon="⏳" color="amber" />
             <Stat label="Approved Reports" value={s.approved} icon="✅" color="emerald" />
-            <Stat label="Returned Reports" value={s.returned} icon="↩️" color="indigo" />
+            <Stat label="Open Dev Tickets" value={s.open_dev_tickets} icon="🛠️" color="amber" />
             <Stat label="Active Teams" value={s.teams} icon="🗂️" color="slate" />
           </>
         )}
@@ -212,7 +212,7 @@ export default function Dashboard() {
           <>
             <Stat label="Pending Review" value={s.pending_review} icon="⏳" color="amber" />
             <Stat label="Forwarded to Admin" value={s.forwarded} icon="⏩" color="indigo" />
-            <Stat label="Approved Reports" value={s.approved} icon="✅" color="emerald" />
+            <Stat label="Open Dev Requests" value={s.open_dev_tickets} icon="🛠️" color="amber" />
             <Stat label="My Team Members" value={s.my_employees} icon="👥" color="slate" />
           </>
         )}
@@ -220,17 +220,19 @@ export default function Dashboard() {
           <>
             <Stat label="Draft Reports" value={s.drafts} icon="📝" color="slate" />
             <Stat label="Submitted to TL" value={s.submitted} icon="⏳" color="indigo" />
-            <Stat label="Returned Revision" value={s.returned} icon="⚠️" color="amber" />
             <Stat label="Approved Reports" value={s.approved} icon="✅" color="emerald" />
+            <Stat label="My Open Dev Tickets" value={s.open_dev_tickets} icon="🛠️" color="amber" />
           </>
         )}
         {user.role === 'developer' && (
           <>
             <Stat label="Assigned to Me" value={s.total_assigned} icon="🛠️" color="brand" />
-            <Stat label="Open / Pending" value={s.pending} icon="⏳" color="amber" />
+            <Stat label="In Progress" value={s.in_progress} icon="⚙️" color="amber" />
+            <Stat label="Under QA" value={s.under_qa} icon="🔍" color="indigo" />
             <Stat label="Resolved" value={s.resolved} icon="✅" color="emerald" />
           </>
         )}
+
       </div>
 
       {/* Charts Section */}
