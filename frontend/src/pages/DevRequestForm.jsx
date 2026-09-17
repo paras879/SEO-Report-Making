@@ -6,17 +6,33 @@ import { PRIORITY_OPTIONS, DEV_CATEGORIES } from '../constants';
 export default function DevRequestForm() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('other');
+  const [category, setCategory] = useState('hosting_server');
   const [clientName, setClientName] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('medium');
+  const [priority, setPriority] = useState('high');
   const [sites, setSites] = useState([{ name: '', urls: [''] }]);
   const [credentialsNote, setCredentialsNote] = useState('');
   const [showCreds, setShowCreds] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const activeCategoryMeta = DEV_CATEGORIES.find((c) => c.value === category) || DEV_CATEGORIES[0];
+
+  const handleCategorySelect = (catValue) => {
+    setCategory(catValue);
+    const catMeta = DEV_CATEGORIES.find((c) => c.value === catValue);
+    if (catMeta && catMeta.defaultPriority) {
+      setPriority(catMeta.defaultPriority);
+    }
+  };
+
+  const applyCategoryTemplate = () => {
+    if (activeCategoryMeta?.descPlaceholder) {
+      setDescription((prev) => (prev ? `${prev}\n\n${activeCategoryMeta.descPlaceholder}` : activeCategoryMeta.descPlaceholder));
+    }
+  };
 
   const addSite = () => setSites([...sites, { name: '', urls: [''] }]);
   const removeSite = (si) => setSites(sites.filter((_, i) => i !== si));
@@ -102,7 +118,7 @@ export default function DevRequestForm() {
   };
 
   return (
-    <div className="w-full space-y-6 pb-12">
+    <div className="w-full space-y-6 pb-12 animate-fade-in">
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
@@ -125,54 +141,73 @@ export default function DevRequestForm() {
       {err && <div className="alert-error"><span>⚠️</span><span>{err}</span></div>}
 
       {/* Section 1: Problem Category & Details */}
-      <div className="card space-y-5">
+      <div className="card space-y-5 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
           <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-sm">01</div>
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Problem Details & Category</h2>
-            <p className="text-[11px] text-slate-400">Categorize and describe the issue clearly</p>
+            <p className="text-[11px] text-slate-400">Select a category — title, priority and questions will adapt automatically</p>
           </div>
         </div>
 
         {/* Category Picker */}
         <div>
-          <label className="label">Select Issue Category *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-1">
+          <label className="label text-xs font-bold text-slate-700">Select Issue Category *</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-1.5">
             {DEV_CATEGORIES.map((c) => {
               const selected = category === c.value;
               return (
                 <button
                   type="button"
                   key={c.value}
-                  onClick={() => setCategory(c.value)}
-                  className={`p-3 rounded-xl border text-left transition-all ${
+                  onClick={() => handleCategorySelect(c.value)}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden group ${
                     selected
-                      ? 'border-brand-500 bg-brand-50/80 ring-2 ring-brand-500/20 shadow-sm'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                      ? 'border-brand-500 bg-brand-50/90 ring-2 ring-brand-500/25 shadow-sm transform scale-[1.02]'
+                      : 'border-slate-200/90 hover:border-brand-300 bg-white hover:bg-slate-50/80'
                   }`}
                 >
-                  <div className="text-xl">{c.icon}</div>
-                  <p className="text-xs font-bold text-slate-900 mt-1 leading-tight">{c.label}</p>
+                  {selected && (
+                    <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-600 animate-ping"></span>
+                  )}
+                  <div className="text-2xl group-hover:scale-110 transition-transform">{c.icon}</div>
+                  <p className={`text-xs font-bold mt-1.5 leading-tight ${selected ? 'text-brand-900' : 'text-slate-800'}`}>
+                    {c.label}
+                  </p>
                   <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{c.desc}</p>
                 </button>
               );
             })}
           </div>
+
+          {/* Dynamic Category Tip Banner */}
+          {activeCategoryMeta?.tip && (
+            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-brand-50/70 via-indigo-50/50 to-brand-50/70 border border-brand-200/80 text-xs text-brand-900 flex items-center justify-between gap-3 animate-fade-in">
+              <span className="font-semibold">{activeCategoryMeta.tip}</span>
+              <button
+                type="button"
+                onClick={applyCategoryTemplate}
+                className="text-[11px] font-bold text-brand-700 hover:text-brand-900 bg-white hover:bg-brand-100 border border-brand-300 px-2.5 py-1 rounded-lg transition-all shrink-0 shadow-sm"
+              >
+                📋 Load Template
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
           <div className="sm:col-span-2">
-            <label className="label">Problem Title *</label>
+            <label className="label text-xs font-bold text-slate-700">Problem Title *</label>
             <input
-              className="input font-semibold"
+              className="input font-semibold text-xs"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Client site not loading / 500 error on checkout"
+              placeholder={activeCategoryMeta?.titlePlaceholder || "e.g. Client site not loading / 500 error"}
             />
           </div>
           <div>
-            <label className="label">Priority</label>
-            <select className="input" value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <label className="label text-xs font-bold text-slate-700">Priority</label>
+            <select className="input text-xs" value={priority} onChange={(e) => setPriority(e.target.value)}>
               {PRIORITY_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label} Priority
@@ -182,39 +217,48 @@ export default function DevRequestForm() {
           </div>
 
           <div>
-            <label className="label">Client / Project Name (Optional)</label>
+            <label className="label text-xs font-bold text-slate-700">Client / Project Name (Optional)</label>
             <input
-              className="input"
+              className="input text-xs"
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="e.g. Apex Dental Clinic"
             />
           </div>
           <div>
-            <label className="label">Expected Target Date / Due Date (Optional)</label>
+            <label className="label text-xs font-bold text-slate-700">Expected Target Date / Due Date (Optional)</label>
             <input
               type="date"
-              className="input"
+              className="input text-xs"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </div>
 
           <div className="sm:col-span-3">
-            <label className="label">Describe the problem</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="label text-xs font-bold text-slate-700 mb-0">Describe the Problem *</label>
+              <button
+                type="button"
+                onClick={applyCategoryTemplate}
+                className="text-[11px] font-bold text-brand-600 hover:underline"
+              >
+                + Insert {activeCategoryMeta?.label} questions template
+              </button>
+            </div>
             <textarea
-              className="input min-h-[100px]"
-              rows="3"
+              className="input min-h-[120px] text-xs leading-relaxed"
+              rows="4"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is happening, since when, any error message, what you already tried..."
+              placeholder={activeCategoryMeta?.descPlaceholder || "What is happening, since when, any error message, what you already tried..."}
             />
           </div>
         </div>
       </div>
 
       {/* Section 2: Screenshots & Visual Evidence */}
-      <div className="card space-y-4">
+      <div className="card space-y-4 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm">02</div>
@@ -257,7 +301,7 @@ export default function DevRequestForm() {
       </div>
 
       {/* Section 3: Affected Sites & URLs */}
-      <div className="card space-y-5">
+      <div className="card space-y-5 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm">03</div>
@@ -274,9 +318,9 @@ export default function DevRequestForm() {
             <div key={si} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="label">Site {si + 1} Name</label>
+                  <label className="label text-xs font-bold text-slate-700">Site {si + 1} Name</label>
                   <input
-                    className="input"
+                    className="input text-xs"
                     value={s.name}
                     onChange={(e) => setSiteName(si, e.target.value)}
                     placeholder="e.g. Apex Health Solutions"
@@ -294,11 +338,11 @@ export default function DevRequestForm() {
               </div>
 
               <div className="space-y-2">
-                <label className="label">URLs</label>
+                <label className="label text-xs font-bold text-slate-700">URLs</label>
                 {s.urls.map((u, ui) => (
                   <div key={ui} className="flex items-center gap-2">
                     <input
-                      className="input flex-1"
+                      className="input flex-1 text-xs"
                       value={u}
                       onChange={(e) => setUrl(si, ui, e.target.value)}
                       placeholder="https://example.com/page"
@@ -307,7 +351,7 @@ export default function DevRequestForm() {
                       <button
                         type="button"
                         onClick={() => removeUrl(si, ui)}
-                        className="shrink-0 w-9 h-9 rounded-lg text-rose-500 hover:bg-rose-50 border border-slate-200 flex items-center justify-center"
+                        className="shrink-0 w-9 h-9 rounded-lg text-rose-500 hover:bg-rose-50 border border-slate-200 flex items-center justify-center text-xs"
                         title="Remove URL"
                       >
                         ✕
@@ -325,7 +369,7 @@ export default function DevRequestForm() {
       </div>
 
       {/* Section 4: Confidential Access Notes (Optional) */}
-      <div className="card space-y-3">
+      <div className="card space-y-3 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
         <button
           type="button"
           onClick={() => setShowCreds(!showCreds)}
@@ -363,11 +407,10 @@ export default function DevRequestForm() {
           <p className="font-semibold text-slate-700">Ready to send?</p>
           <p>This request will go straight to your Team Lead with priority: <b className="capitalize text-slate-800">{priority}</b>.</p>
         </div>
-        <button type="button" className="btn-primary w-full sm:w-auto text-xs" disabled={saving} onClick={submit}>
+        <button type="button" className="btn-primary w-full sm:w-auto text-xs py-2.5 px-5 font-bold shadow-md" disabled={saving} onClick={submit}>
           {saving ? 'Sending...' : '🚀 Submit to Team Lead'}
         </button>
       </div>
     </div>
   );
 }
-
