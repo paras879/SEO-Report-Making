@@ -13,6 +13,9 @@ function canChat(me, other) {
   if (other.role === 'super_admin') return me.role === 'admin';
   // admin sabse (super handled above)
   if (me.role === 'admin' || other.role === 'admin') return true;
+  // developer <-> team_lead or admin
+  if (me.role === 'developer' && ['team_lead', 'admin'].includes(other.role)) return true;
+  if (other.role === 'developer' && ['team_lead', 'admin'].includes(me.role)) return true;
   // team_lead <-> apni team ke employee
   if (me.role === 'team_lead' && other.role === 'employee' && other.team_id && other.team_id === me.team_id) return true;
   if (me.role === 'employee' && other.role === 'team_lead' && other.team_id && other.team_id === me.team_id) return true;
@@ -27,14 +30,18 @@ function contactCondition(me, params) {
   if (me.role === 'super_admin') {
     return "u.role = 'admin'"; // sirf admins
   }
+  if (me.role === 'developer') {
+    return "u.role IN ('admin', 'team_lead')";
+  }
   if (me.role === 'team_lead') {
     params.push(me.team_id);
-    return `(u.role='admin' OR (u.role='employee' AND u.team_id = $${params.length}))`;
+    return `(u.role IN ('admin', 'developer') OR (u.role='employee' AND u.team_id = $${params.length}))`;
   }
   // employee
   params.push(me.team_id);
   return `(u.role='admin' OR (u.role='team_lead' AND u.team_id = $${params.length}))`;
 }
+
 
 // GET /api/chat/contacts   -> allowed users + last message + unread
 async function contacts(req, res, next) {
