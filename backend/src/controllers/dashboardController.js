@@ -74,9 +74,7 @@ async function stats(req, res, next) {
 
       // Fetch employee's recent reports
       const rec = await pool.query(`
-        SELECT id, report_date, status, created_at,
-               (data->>'client_name') AS client_name,
-               (data->>'target_url') AS target_url
+        SELECT id, title, report_date, status, client_name, website_url, created_at
         FROM reports WHERE employee_id=$1 ORDER BY created_at DESC LIMIT 5
       `, [req.user.id]);
       out.recent_reports = rec.rows;

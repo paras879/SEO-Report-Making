@@ -520,9 +520,9 @@ export default function Dashboard() {
                         📅 {r.report_date ? new Date(r.report_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                       </td>
                       <td className="px-5 py-3.5 text-xs">
-                        <p className="font-bold text-slate-800">{r.client_name || 'SEO Campaign Log'}</p>
-                        {r.target_url && (
-                          <p className="text-[11px] text-slate-400 truncate max-w-xs">{r.target_url}</p>
+                        <p className="font-bold text-slate-800">{r.client_name || r.title || 'SEO Campaign Log'}</p>
+                        {r.website_url && (
+                          <p className="text-[11px] text-slate-400 truncate max-w-xs">{r.website_url}</p>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
