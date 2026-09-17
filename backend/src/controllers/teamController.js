@@ -37,7 +37,12 @@ async function listTeams(req, res, next) {
     let sql = `
       SELECT t.*,
              u.name AS team_lead_name,
-             (SELECT COUNT(*) FROM users e WHERE e.team_id = t.id AND e.role = 'employee') AS employee_count
+             u.email AS team_lead_email,
+             u.username AS team_lead_username,
+             (SELECT COUNT(*) FROM users e WHERE e.team_id = t.id AND e.role = 'employee') AS employee_count,
+             (SELECT json_agg(json_build_object('id', e.id, 'name', e.name, 'username', e.username)) 
+              FROM (SELECT id, name, username FROM users WHERE team_id = t.id AND role = 'employee' LIMIT 5) e
+             ) AS member_previews
       FROM teams t
       LEFT JOIN users u ON u.id = t.team_lead_id`;
     const params = [];
@@ -48,6 +53,21 @@ async function listTeams(req, res, next) {
     sql += ` ORDER BY t.created_at DESC`;
     const { rows } = await pool.query(sql, params);
     res.json({ success: true, count: rows.length, teams: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/teams/:id (admin / super_admin)
+async function deleteTeam(req, res, next) {
+  try {
+    const { id } = req.params;
+    // Unassign all users from this team first
+    await pool.query('UPDATE users SET team_id = NULL WHERE team_id = $1', [id]);
+    const { rowCount } = await pool.query('DELETE FROM teams WHERE id = $1', [id]);
+    if (rowCount === 0) return res.status(404).json({ success: false, message: 'Team not found' });
+    await logAudit({ userId: req.user.id, action: 'team_deleted', entityType: 'team', entityId: Number(id), req });
+    res.json({ success: true, message: 'Team deleted successfully' });
   } catch (err) {
     next(err);
   }
@@ -143,4 +163,4 @@ async function removeMember(req, res, next) {
   }
 }
 
-module.exports = { createTeam, listTeams, getTeam, updateTeam, addMember, removeMember };
+module.exports = { createTeam, listTeams, getTeam, updateTeam, deleteTeam, addMember, removeMember };

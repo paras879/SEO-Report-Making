@@ -18,6 +18,7 @@ router.post(
 router.get('/', authorize('super_admin', 'admin', 'team_lead'), ctrl.listTeams);
 router.get('/:id', authorize('super_admin', 'admin', 'team_lead'), ctrl.getTeam);
 router.patch('/:id', authorize('super_admin', 'admin'), ctrl.updateTeam);
+router.delete('/:id', authorize('super_admin', 'admin'), ctrl.deleteTeam);
 router.post('/:id/members', authorize('super_admin', 'admin'), [body('user_id').isInt()], validate, ctrl.addMember);
 router.delete('/:id/members/:userId', authorize('super_admin', 'admin'), ctrl.removeMember);
 
