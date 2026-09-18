@@ -51,9 +51,19 @@ export default function NotificationBell() {
     if (n.related_report_id) navigate(`/reports/${n.related_report_id}`);
   };
 
-  const markAll = async () => {
+  const deleteItem = async (e, id) => {
+    e.stopPropagation();
     try {
-      await api.patch('/notifications/read-all');
+      await api.delete(`/notifications/${id}`);
+      load();
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  const deleteAll = async () => {
+    try {
+      await api.delete('/notifications/clear-all');
       load();
     } catch (e) {
       /* ignore */
@@ -110,36 +120,61 @@ export default function NotificationBell() {
             {items.map((n) => {
               const displayMsg = sanitizeEnglish(n.message);
               return (
-                <button
+                <div
                   key={n.id}
                   onClick={() => openItem(n)}
-                  className={`w-full text-left px-5 py-4 hover:bg-slate-50 transition-colors flex items-start gap-3.5 ${
+                  className={`w-full text-left px-5 py-4 hover:bg-slate-50 transition-colors flex items-start justify-between gap-3 group cursor-pointer ${
                     n.is_read ? 'bg-white' : 'bg-brand-50/40'
                   }`}
                 >
-                  <div className="pt-1.5 shrink-0">
-                    <div className={`w-2.5 h-2.5 rounded-full ${n.is_read ? 'bg-transparent' : 'bg-brand-500 shadow-sm ring-2 ring-brand-200'}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className={`text-xs ${n.is_read ? 'font-semibold text-slate-700' : 'font-extrabold text-slate-900'}`}>
-                        {n.title}
-                      </p>
-                      <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium">
-                        {new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                    <div className="pt-1.5 shrink-0">
+                      <div className={`w-2.5 h-2.5 rounded-full ${n.is_read ? 'bg-transparent' : 'bg-brand-500 shadow-sm ring-2 ring-brand-200'}`} />
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-xs ${n.is_read ? 'font-semibold text-slate-700' : 'font-extrabold text-slate-900'}`}>
+                          {n.title}
+                        </p>
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium">
+                          {new Date(n.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
 
-                    {displayMsg && (
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2 font-normal">
-                        {displayMsg}
-                      </p>
-                    )}
+                      {displayMsg && (
+                        <p className="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2 font-normal">
+                          {displayMsg}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => deleteItem(e, n.id)}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-all shrink-0 text-xs font-bold"
+                    title="Delete notification"
+                  >
+                    🗑️
+                  </button>
+                </div>
               );
             })}
           </div>
+
+          {/* Footer */}
+          {items.length > 0 && (
+            <div className="flex items-center justify-between px-5 py-2.5 border-t border-slate-100 bg-slate-50/80">
+              <span className="text-[11px] text-slate-400 font-medium">{items.length} notification{items.length !== 1 ? 's' : ''}</span>
+              <button
+                type="button"
+                onClick={deleteAll}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <span>🗑️</span> Delete
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

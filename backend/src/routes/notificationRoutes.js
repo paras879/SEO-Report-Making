@@ -8,5 +8,8 @@ router.use(authenticate);
 router.get('/', ctrl.listNotifications);
 router.patch('/read-all', ctrl.markAllRead);
 router.patch('/:id/read', ctrl.markRead);
+router.delete('/clear-all', ctrl.clearAllNotifications);
+router.delete('/:id', ctrl.deleteNotification);
 
 module.exports = router;
+
