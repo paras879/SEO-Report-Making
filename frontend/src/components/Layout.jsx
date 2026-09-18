@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
-import api from '../api/client';
 
 const ROLE_LABEL = {
   super_admin: 'Super Admin',
@@ -26,11 +25,9 @@ function menuFor(role) {
     m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   } else if (role === 'developer') {
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/chat', label: 'Chat', icon: '💬' });
     return m;
   } else if (role === 'designer' || role === 'editor') {
     m.push({ to: '/design-requests', label: 'Content Tasks', icon: '✍️' });
-    m.push({ to: '/chat', label: 'Chat', icon: '💬' });
     return m;
   } else if (role === 'super_admin') {
     m.push({ to: '/supervisor', label: 'Supervisor Hub', icon: '👁️' });
@@ -58,13 +55,10 @@ function menuFor(role) {
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
     m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   }
-  // Notes + Chat sabke liye
-  m.push({ to: '/notes', label: role === 'employee' ? 'My Notes' : 'Notes', icon: '📝' });
-  m.push({ to: '/chat', label: 'Chat', icon: '💬' });
   return m;
 }
 
-function SidebarInner({ user, menu, location, chatUnread, handleLogout, onClose, isDrawer }) {
+function SidebarInner({ user, menu, location, handleLogout, onClose, isDrawer }) {
   return (
     <div className="flex flex-col h-full w-full">
       {/* Brand Header */}
@@ -125,11 +119,6 @@ function SidebarInner({ user, menu, location, chatUnread, handleLogout, onClose,
           >
             <span className="text-sm sm:text-base shrink-0">{item.icon}</span>
             <span className="flex-1 tracking-tight truncate">{item.label}</span>
-            {item.to === '/chat' && chatUnread > 0 && (
-              <span className="bg-red-500 text-white text-[9px] sm:text-[10px] font-bold rounded-full min-w-[16px] h-[16px] sm:min-w-[18px] sm:h-[18px] px-1 flex items-center justify-center shadow-sm shrink-0">
-                {chatUnread > 9 ? '9+' : chatUnread}
-              </span>
-            )}
           </NavLink>
         ))}
 
@@ -169,15 +158,7 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [chatUnread, setChatUnread] = useState(0);
   const menu = menuFor(user.role);
-
-  useEffect(() => {
-    const load = () => api.get('/chat/unread-count').then((r) => setChatUnread(r.data.count || 0)).catch(() => {});
-    load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
-  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -220,7 +201,6 @@ export default function Layout({ children }) {
               user={user}
               menu={menu}
               location={location}
-              chatUnread={chatUnread}
               handleLogout={handleLogout}
               onClose={() => setOpen(false)}
               isDrawer={true}
@@ -235,7 +215,6 @@ export default function Layout({ children }) {
           user={user}
           menu={menu}
           location={location}
-          chatUnread={chatUnread}
           handleLogout={handleLogout}
           onClose={() => setOpen(false)}
           isDrawer={false}

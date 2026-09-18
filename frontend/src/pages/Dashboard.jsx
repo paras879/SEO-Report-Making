@@ -473,13 +473,6 @@ export default function Dashboard() {
                   <span>⚙️</span>
                   <span>In Progress Tasks</span>
                 </Link>
-                <Link
-                  to="/chat"
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
-                >
-                  <span>💬</span>
-                  <span>Team Chat</span>
-                </Link>
               </>
             )}
 
@@ -498,13 +491,6 @@ export default function Dashboard() {
                 >
                   <span>⚙️</span>
                   <span>In Progress Tasks</span>
-                </Link>
-                <Link
-                  to="/chat"
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
-                >
-                  <span>💬</span>
-                  <span>Team Chat</span>
                 </Link>
               </>
             )}
@@ -921,18 +907,12 @@ export default function Dashboard() {
                           </button>
                         )}
 
-                        {/* Always show Details & Chat */}
+                        {/* Details */}
                         <Link
                           to={`/dev-requests/${t.id}`}
                           className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] text-center transition-all border border-slate-700"
                         >
                           Details ➔
-                        </Link>
-                        <Link
-                          to="/chat"
-                          className="py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-brand-300 font-bold text-[11px] text-center transition-all border border-slate-700 flex items-center justify-center gap-1"
-                        >
-                          <span>💬 Chat</span>
                         </Link>
                       </div>
                     </div>
@@ -1107,18 +1087,12 @@ export default function Dashboard() {
                           </button>
                         )}
 
-                        {/* Always show Details & Chat */}
+                        {/* Details */}
                         <Link
                           to={`/design-requests/${t.id}`}
                           className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] text-center transition-all border border-slate-700"
                         >
                           Details ➔
-                        </Link>
-                        <Link
-                          to="/chat"
-                          className="py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-brand-300 font-bold text-[11px] text-center transition-all border border-slate-700 flex items-center justify-center gap-1"
-                        >
-                          <span>💬 Chat</span>
                         </Link>
                       </div>
                     </div>
@@ -1284,18 +1258,6 @@ export default function Dashboard() {
                 <p className="text-[11px] text-slate-400 mt-1">Submit technical tickets for site speed, DNS, hosting, or schema errors.</p>
               </Link>
 
-              <Link
-                to="/chat"
-                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
-                  💬
-                </div>
-                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
-                  Squad & Team Chat
-                </h4>
-                <p className="text-[11px] text-slate-400 mt-1">Direct message your Team Lead, collaborate in channels, and share files.</p>
-              </Link>
             </>
           ) : user.role === 'developer' ? (
             <>
@@ -1338,18 +1300,6 @@ export default function Dashboard() {
                 <p className="text-[11px] text-slate-400 mt-1">Review tickets submitted for employee testing and verification.</p>
               </Link>
 
-              <Link
-                to="/chat"
-                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
-                  💬
-                </div>
-                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
-                  Live Staff Chat
-                </h4>
-                <p className="text-[11px] text-slate-400 mt-1">Real-time messaging with employees and team leads for bug reproduction.</p>
-              </Link>
             </>
           ) : user.role === 'designer' ? (
             <>
@@ -1392,18 +1342,6 @@ export default function Dashboard() {
                 <p className="text-[11px] text-slate-400 mt-1">Inspect completed visual assets submitted for employee testing & approval.</p>
               </Link>
 
-              <Link
-                to="/chat"
-                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
-                  💬
-                </div>
-                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
-                  Live Staff Chat
-                </h4>
-                <p className="text-[11px] text-slate-400 mt-1">Real-time messaging with employees and team leads for visual asset briefs.</p>
-              </Link>
             </>
           ) : ['supervisor', 'super_admin', 'admin'].includes(user.role) ? (
             <>
@@ -1487,31 +1425,7 @@ export default function Dashboard() {
                 <p className="text-[11px] text-slate-400 mt-1">Organize SEO specialists and manage team leadership rosters.</p>
               </Link>
 
-              <Link
-                to="/chat"
-                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
-                  💬
-                </div>
-                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
-                  Live Team Chat
-                </h4>
-                <p className="text-[11px] text-slate-400 mt-1">Real-time messaging, channels, direct chats, and voice notes.</p>
-              </Link>
 
-              <Link
-                to="/notes"
-                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
-                  📝
-                </div>
-                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
-                  Daily Notes & Scratchpad
-                </h4>
-                <p className="text-[11px] text-slate-400 mt-1">Store personal strategies, quick links, and campaign notes.</p>
-              </Link>
             </>
           )}
         </div>

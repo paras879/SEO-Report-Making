@@ -11,10 +11,6 @@ import ReportDetail from './pages/ReportDetail';
 import ReportForm from './pages/ReportForm';
 import AuditLogs from './pages/AuditLogs';
 import ChangePassword from './pages/ChangePassword';
-import Notes from './pages/Notes';
-import NoteCompose from './pages/NoteCompose';
-import NoteDetail from './pages/NoteDetail';
-import Chat from './pages/Chat';
 import DevRequests from './pages/DevRequests';
 import DevRequestForm from './pages/DevRequestForm';
 import DevRequestDetail from './pages/DevRequestDetail';
@@ -46,12 +42,6 @@ export default function App() {
       <Route path="/reports/new" element={<P roles={['employee']}><ReportForm /></P>} />
       <Route path="/reports/:id/edit" element={<P roles={['employee']}><ReportForm /></P>} />
       <Route path="/reports/:id" element={<P><ReportDetail /></P>} />
-
-      <Route path="/notes" element={<P><Notes /></P>} />
-      <Route path="/notes/new" element={<P roles={['employee', 'team_lead']}><NoteCompose /></P>} />
-      <Route path="/notes/:id" element={<P><NoteDetail /></P>} />
-
-      <Route path="/chat" element={<P><Chat /></P>} />
 
       <Route path="/dev-requests" element={<P><DevRequests /></P>} />
       <Route path="/dev-requests/new" element={<P roles={['employee']}><DevRequestForm /></P>} />
