@@ -87,4 +87,56 @@
   animation: slideDrawer 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes blobFloat {
+  0%, 100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.4), 0 0 50px rgba(79, 70, 229, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(99, 102, 241, 0.7), 0 0 80px rgba(129, 140, 248, 0.4);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-blob-1 {
+  animation: blobFloat 12s infinite ease-in-out;
+}
+
+.animate-blob-2 {
+  animation: blobFloat 15s infinite ease-in-out reverse;
+}
+
+.animate-blob-3 {
+  animation: blobFloat 18s infinite ease-in-out 3s;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 
