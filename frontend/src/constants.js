@@ -144,4 +144,17 @@ export const DEV_STATUS_MAP = {
   reopened: { label: 'Reopened ⚠️', cls: 'bg-rose-50 text-rose-700 border border-rose-200' },
 };
 
+// Default Client Websites List for Searchable Dropdown
+export const DEFAULT_WEBSITES = [
+  { name: 'TechCrunch Inc', url: 'https://techcrunch.com' },
+  { name: 'Fashion Hub Store', url: 'https://fashionhub.example.com' },
+  { name: 'CloudSync Pro B2B', url: 'https://cloudsyncpro.example.com' },
+  { name: 'Apex Health Solutions', url: 'https://apexhealth.example.com' },
+  { name: 'SEO Growth Marketing', url: 'https://seomarketing.example.com' },
+  { name: 'Global Logistics Portal', url: 'https://globallogistics.example.com' },
+  { name: 'Digital Media Network', url: 'https://digitalmedia.example.com' },
+  { name: 'Fintech Capital Hub', url: 'https://fintechcapital.example.com' },
+  { name: 'E-Commerce Storefront', url: 'https://store.example.com' },
+];
+
 

@@ -98,15 +98,26 @@ async function createRequest(req, res, next) {
     const dueDate = req.body.due_date ? String(req.body.due_date).trim() : null;
     const credentialsNote = req.body.credentials_note ? String(req.body.credentials_note).trim().slice(0, 3000) : null;
     const attachments = cleanAttachments(req.body.attachments);
-    const developerId = req.body.developer_id ? Number(req.body.developer_id) : null;
-    if (!developerId) {
-      return res.status(422).json({ success: false, message: 'Please select a developer to assign this request' });
-    }
-
+    let developerId = null;
     let devName = null;
-    const devRes = await pool.query("SELECT id, name FROM users WHERE id=$1 AND is_active=TRUE", [developerId]);
-    if (devRes.rows[0]) {
-      devName = devRes.rows[0].name;
+
+    if (String(req.body.developer_id) === 'all') {
+      const allDevs = await pool.query("SELECT id, name FROM users WHERE role='developer' AND is_active=TRUE ORDER BY id ASC LIMIT 1");
+      developerId = allDevs.rows[0]?.id || null;
+      if (!developerId) {
+        const fallback = await pool.query("SELECT id, name FROM users WHERE role IN ('developer','admin','super_admin') AND is_active=TRUE ORDER BY id ASC LIMIT 1");
+        developerId = fallback.rows[0]?.id || null;
+      }
+      devName = 'All Developers';
+    } else {
+      developerId = req.body.developer_id ? Number(req.body.developer_id) : null;
+      if (!developerId) {
+        return res.status(422).json({ success: false, message: 'Please select a developer to assign this request' });
+      }
+      const devRes = await pool.query("SELECT id, name FROM users WHERE id=$1 AND is_active=TRUE", [developerId]);
+      if (devRes.rows[0]) {
+        devName = devRes.rows[0].name;
+      }
     }
 
     const team = await pool.query('SELECT team_lead_id FROM teams WHERE id=$1', [req.user.team_id]);

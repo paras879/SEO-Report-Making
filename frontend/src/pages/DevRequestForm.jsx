@@ -1,7 +1,85 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/client';
-import { PRIORITY_OPTIONS, DEV_CATEGORIES } from '../constants';
+import { PRIORITY_OPTIONS, DEV_CATEGORIES, DEFAULT_WEBSITES } from '../constants';
+
+function SearchableSiteInput({ value, onChange, onSelectUrl }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = DEFAULT_WEBSITES.filter(
+    (w) =>
+      w.name.toLowerCase().includes(search.toLowerCase()) ||
+      w.url.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          className="input text-xs pr-8 font-semibold bg-white"
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          placeholder="Search or select site name (e.g. Apex Health Solutions)..."
+        />
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-700"
+        >
+          {isOpen ? '▲' : '▼'}
+        </button>
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+            <div className="p-2 bg-slate-50 sticky top-0 border-b border-slate-100">
+              <input
+                className="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                placeholder="🔍 Search website name or URL..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {filtered.map((w, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onChange(w.name);
+                  if (onSelectUrl && w.url) onSelectUrl(w.url);
+                  setIsOpen(false);
+                }}
+                className="w-full text-left px-3.5 py-2 hover:bg-brand-50/80 transition-colors flex items-center justify-between group"
+              >
+                <div>
+                  <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700">{w.name}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">{w.url}</p>
+                </div>
+                <span className="text-[10px] text-brand-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                  Select ➔
+                </span>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="p-3 text-center text-xs text-slate-400">
+                No matching site. Click outside to use custom site name.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function DevRequestForm() {
   const navigate = useNavigate();
@@ -27,7 +105,9 @@ export default function DevRequestForm() {
   }, []);
 
   const activeCategoryMeta = DEV_CATEGORIES.find((c) => c.value === category) || DEV_CATEGORIES[0];
-  const selectedDevObj = developers.find((d) => String(d.id) === String(selectedDeveloper));
+  const selectedDevObj = selectedDeveloper === 'all'
+    ? { name: 'All Developers (Whole Dev Team)', username: 'all_devs', role: 'ALL' }
+    : developers.find((d) => String(d.id) === String(selectedDeveloper));
 
   const handleCategorySelect = (catValue) => {
     setCategory(catValue);
@@ -104,7 +184,7 @@ export default function DevRequestForm() {
       .map((s) => ({ name: s.name.trim(), urls: s.urls.map((u) => u.trim()).filter(Boolean) }))
       .filter((s) => s.name || s.urls.length > 0);
     if (cleaned.length === 0) return setErr('Add at least one site (name or URL)');
-    if (!selectedDeveloper) return setErr('Please select a Developer before submitting this request.');
+    if (!selectedDeveloper) return setErr('Please select a Developer or "All Developers" before submitting this request.');
 
     setSaving(true);
     try {
@@ -145,7 +225,7 @@ export default function DevRequestForm() {
       <div>
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Raise a Developer Request</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Facing a technical / site issue (site not opening, error, etc.)? Select a Developer to send your request directly or submit to the team.
+          Facing a technical / site issue (site not opening, error, etc.)? Select a Developer or send to All Developers directly.
         </p>
       </div>
 
@@ -311,14 +391,14 @@ export default function DevRequestForm() {
         )}
       </div>
 
-      {/* Section 3: Affected Sites & URLs */}
+      {/* Section 3: Affected Sites & URLs with Searchable Dropdown */}
       <div className="card space-y-5 bg-white border border-slate-200/90 rounded-2xl shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center font-bold text-sm">03</div>
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-800">Affected Sites & URLs</h2>
-              <p className="text-[11px] text-slate-400">Add one or more sites — each can have multiple URLs</p>
+              <p className="text-[11px] text-slate-400">Search/select from website list or type custom website name</p>
             </div>
           </div>
           <button type="button" onClick={addSite} className="btn-secondary text-xs">+ Add Site</button>
@@ -329,12 +409,15 @@ export default function DevRequestForm() {
             <div key={si} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="label text-xs font-bold text-slate-700">Site {si + 1} Name</label>
-                  <input
-                    className="input text-xs"
+                  <label className="label text-xs font-bold text-slate-700">Site {si + 1} Name (Searchable Website Dropdown)</label>
+                  <SearchableSiteInput
                     value={s.name}
-                    onChange={(e) => setSiteName(si, e.target.value)}
-                    placeholder="e.g. Apex Health Solutions"
+                    onChange={(val) => setSiteName(si, val)}
+                    onSelectUrl={(url) => {
+                      if (s.urls.length === 1 && !s.urls[0]) {
+                        setUrl(si, 0, url);
+                      }
+                    }}
                   />
                 </div>
                 {sites.length > 1 && (
@@ -421,7 +504,7 @@ export default function DevRequestForm() {
               <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-950">
                 Select Developer / Assignee <span className="text-rose-500">*</span>
               </h2>
-              <p className="text-[11px] text-indigo-600">Assign a specific developer to handle your request. Submission is blocked until selected.</p>
+              <p className="text-[11px] text-indigo-600">Assign a specific developer or choose "All Developers" to send to whole dev team.</p>
             </div>
           </div>
           <span className="text-xs font-bold text-indigo-700 bg-white px-3 py-1 rounded-xl border border-indigo-200 shadow-xs">
@@ -430,6 +513,29 @@ export default function DevRequestForm() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+          {/* Card Option 1: ALL DEVELOPERS */}
+          <button
+            type="button"
+            onClick={() => { setSelectedDeveloper('all'); setErr(''); }}
+            className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+              selectedDeveloper === 'all'
+                ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-md font-bold'
+                : 'border-indigo-200/80 hover:border-indigo-300 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 hover:bg-white text-slate-800'
+            }`}
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-brand-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+              👥
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <p className="font-extrabold text-xs text-slate-900 truncate">All Developers (Whole Team)</p>
+                {selectedDeveloper === 'all' && <span className="text-indigo-600 font-bold text-xs shrink-0">✓</span>}
+              </div>
+              <p className="text-[10px] text-indigo-600 font-mono font-bold truncate">@all_devs • Send to all {developers.length} devs</p>
+            </div>
+          </button>
+
+          {/* Specific Developer Cards */}
           {developers.map((d) => {
             const isSel = String(d.id) === String(selectedDeveloper);
             return (
@@ -437,9 +543,9 @@ export default function DevRequestForm() {
                 key={d.id}
                 type="button"
                 onClick={() => { setSelectedDeveloper(String(d.id)); setErr(''); }}
-                className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
                   isSel
-                    ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-sm font-bold'
+                    ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-md font-bold'
                     : 'border-indigo-100 hover:border-indigo-300 bg-white/80 hover:bg-white text-slate-800'
                 }`}
               >
@@ -460,7 +566,7 @@ export default function DevRequestForm() {
 
         {!selectedDeveloper && (
           <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
-            <span>⚠️</span> You MUST select a developer before submitting this request.
+            <span>⚠️</span> You MUST select a developer or "All Developers" before submitting this request.
           </p>
         )}
       </div>
@@ -470,7 +576,7 @@ export default function DevRequestForm() {
         <div className="text-xs text-slate-500">
           <p className="font-semibold text-slate-700">Ready to send?</p>
           <p>
-            This request will be sent {selectedDevObj ? `directly to Developer ${selectedDevObj.name}` : 'to the Developer team'} with priority: <b className="capitalize text-slate-800">{priority}</b>.
+            This request will be sent {selectedDevObj ? `directly to ${selectedDevObj.name}` : 'to the Developer team'} with priority: <b className="capitalize text-slate-800">{priority}</b>.
           </p>
         </div>
         <button
@@ -486,7 +592,7 @@ export default function DevRequestForm() {
           {saving
             ? 'Sending...'
             : selectedDevObj
-            ? `🚀 Submit to Developer (${selectedDevObj.name})`
+            ? `🚀 Submit to (${selectedDevObj.name})`
             : '⚠️ Select a Developer First'}
         </button>
       </div>
