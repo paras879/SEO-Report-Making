@@ -101,10 +101,10 @@ export default function DesignRequests() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10">
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3 text-white">
-            <span className="p-2 rounded-2xl bg-brand-600/30 border border-brand-500/30 shadow-inner">✍️</span> Editor Requests
+            <span className="p-2 rounded-2xl bg-brand-600/30 border border-brand-500/30 shadow-inner">✍️</span> Content Requests
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Manage graphic visuals, blog banners, On-Page graphics, video edits, and keyword asset requirements.
+            Manage website copy, blog content, social media copy, and copywriting requirements.
           </p>
         </div>
 

@@ -23,13 +23,13 @@ function menuFor(role) {
     m.push({ to: '/supervisor', label: 'Supervisor Hub', icon: '👁️' });
     m.push({ to: '/reports', label: 'All Reports', icon: '📄' });
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/design-requests', label: 'Editor Requests', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   } else if (role === 'developer') {
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
     m.push({ to: '/chat', label: 'Chat', icon: '💬' });
     return m;
   } else if (role === 'designer' || role === 'editor') {
-    m.push({ to: '/design-requests', label: 'Editor Tasks', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Tasks', icon: '✍️' });
     m.push({ to: '/chat', label: 'Chat', icon: '💬' });
     return m;
   } else if (role === 'super_admin') {
@@ -38,7 +38,7 @@ function menuFor(role) {
     m.push({ to: '/teams', label: 'Teams', icon: '🗂️' });
     m.push({ to: '/reports', label: 'All Reports', icon: '📄' });
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/design-requests', label: 'Editor Requests', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
     m.push({ to: '/audit', label: 'Audit Logs', icon: '🛡️' });
   } else if (role === 'admin') {
     m.push({ to: '/supervisor', label: 'Supervisor Hub', icon: '👁️' });
@@ -46,17 +46,17 @@ function menuFor(role) {
     m.push({ to: '/teams', label: 'Teams', icon: '🗂️' });
     m.push({ to: '/reports', label: 'Forwarded Reports', icon: '📄' });
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/design-requests', label: 'Editor Requests', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   } else if (role === 'team_lead') {
     m.push({ to: '/teams', label: 'My Team', icon: '🗂️' });
     m.push({ to: '/reports', label: 'Team Reports', icon: '📄' });
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/design-requests', label: 'Editor Requests', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   } else {
     m.push({ to: '/reports', label: 'My Reports', icon: '📄' });
     m.push({ to: '/reports/new', label: 'New Report', icon: '➕' });
     m.push({ to: '/dev-requests', label: 'Dev Requests', icon: '🛠️' });
-    m.push({ to: '/design-requests', label: 'Editor Requests', icon: '🎨' });
+    m.push({ to: '/design-requests', label: 'Content Requests', icon: '✍️' });
   }
   // Notes + Chat sabke liye
   m.push({ to: '/notes', label: role === 'employee' ? 'My Notes' : 'Notes', icon: '📝' });
