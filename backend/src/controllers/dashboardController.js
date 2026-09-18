@@ -6,20 +6,23 @@ async function stats(req, res, next) {
     const role = req.user.role;
     const out = {};
 
-    if (role === 'super_admin') {
+    if (['super_admin', 'supervisor'].includes(role)) {
       const q = await pool.query(`
         SELECT
           (SELECT COUNT(*) FROM users WHERE role='admin') AS admins,
           (SELECT COUNT(*) FROM users WHERE role='team_lead') AS team_leads,
           (SELECT COUNT(*) FROM users WHERE role='employee') AS employees,
           (SELECT COUNT(*) FROM users WHERE role='developer') AS developers,
+          (SELECT COUNT(*) FROM users WHERE role IN ('designer','editor')) AS editors,
           (SELECT COUNT(*) FROM teams) AS teams,
           (SELECT COUNT(*) FROM reports) AS total_reports,
           (SELECT COUNT(*) FROM reports WHERE status='submitted') AS pending_tl,
           (SELECT COUNT(*) FROM reports WHERE status='forwarded') AS pending_admin,
           (SELECT COUNT(*) FROM reports WHERE status='admin_approved') AS approved,
           (SELECT COUNT(*) FROM dev_requests WHERE status NOT IN ('resolved')) AS open_dev_tickets,
-          (SELECT COUNT(*) FROM dev_requests WHERE status='resolved') AS resolved_dev_tickets
+          (SELECT COUNT(*) FROM dev_requests WHERE status='resolved') AS resolved_dev_tickets,
+          (SELECT COUNT(*) FROM design_requests WHERE status NOT IN ('resolved')) AS open_design_tickets,
+          (SELECT COUNT(*) FROM design_requests WHERE status='resolved') AS resolved_design_tickets
       `);
       out.summary = q.rows[0];
     } else if (role === 'admin') {
@@ -54,9 +57,39 @@ async function stats(req, res, next) {
           COUNT(*) FILTER (WHERE status='resolved') AS resolved,
           COALESCE(SUM(hours_spent), 0) AS total_hours_spent,
           COUNT(*) AS total_assigned
-        FROM dev_requests WHERE developer_id=$1
+        FROM dev_requests WHERE developer_id=$1 OR developer_id IS NULL
       `, [req.user.id]);
       out.summary = q.rows[0];
+
+      const rec = await pool.query(`
+        SELECT r.id, r.title, r.category, r.priority, r.status, r.client_name, r.created_at, e.name AS employee_name
+        FROM dev_requests r
+        LEFT JOIN users e ON e.id=r.employee_id
+        WHERE (r.developer_id=$1 OR r.developer_id IS NULL) AND r.status NOT IN ('resolved')
+        ORDER BY r.updated_at DESC LIMIT 6
+      `, [req.user.id]);
+      out.recent_reports = rec.rows;
+    } else if (role === 'designer') {
+      const q = await pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE status IN ('forwarded','in_progress','under_qa','reopened')) AS pending,
+          COUNT(*) FILTER (WHERE status='in_progress') AS in_progress,
+          COUNT(*) FILTER (WHERE status='under_qa') AS under_qa,
+          COUNT(*) FILTER (WHERE status='resolved') AS resolved,
+          COALESCE(SUM(hours_spent), 0) AS total_hours_spent,
+          COUNT(*) AS total_assigned
+        FROM design_requests WHERE designer_id=$1 OR designer_id IS NULL
+      `, [req.user.id]);
+      out.summary = q.rows[0];
+
+      const rec = await pool.query(`
+        SELECT r.id, r.title, r.category, r.blog_category, r.keywords, r.priority, r.status, r.client_name, r.created_at, e.name AS employee_name
+        FROM design_requests r
+        LEFT JOIN users e ON e.id=r.employee_id
+        WHERE (r.designer_id=$1 OR r.designer_id IS NULL) AND r.status NOT IN ('resolved')
+        ORDER BY r.updated_at DESC LIMIT 6
+      `, [req.user.id]);
+      out.recent_reports = rec.rows;
     } else {
       const q = await pool.query(`
         SELECT
@@ -107,78 +140,144 @@ function getDateCondition(query, dateColumn = 'report_date') {
 async function charts(req, res, next) {
   try {
     const role = req.user.role;
-    const { range = '7d', from, to } = req.query;
+    const { range = '7d' } = req.query;
 
-    // Role-based scope
-    let roleConditions = [];
-    const baseParams = [];
-    let paramIdx = 1;
+    let byStatus = [];
+    const trendMap = {};
 
-    if (role === 'employee') {
-      roleConditions.push(`employee_id = $${paramIdx++}`);
-      baseParams.push(req.user.id);
-    } else if (role === 'team_lead') {
-      roleConditions.push(`team_lead_id = $${paramIdx++}`);
-      baseParams.push(req.user.id);
-    } else if (role === 'admin') {
-      roleConditions.push(`status IN ('forwarded','admin_approved','admin_rejected')`);
+    // Generate last 7 days array as YYYY-MM-DD
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toISOString().slice(0, 10);
+      last7Days.push(dayStr);
+      trendMap[dayStr] = 0;
+    }
+
+    if (['supervisor', 'super_admin', 'admin'].includes(role)) {
+      // 1. Fetch report status counts
+      const rStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM reports GROUP BY status`
+      );
+      // 2. Fetch dev requests status counts
+      const devStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM dev_requests GROUP BY status`
+      );
+      // 3. Fetch design requests status counts
+      const desStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM design_requests GROUP BY status`
+      );
+
+      const map = {
+        'Approved & Resolved': 0,
+        'In Progress': 0,
+        'Pending Review': 0,
+        'Draft': 0,
+      };
+
+      rStatus.rows.forEach((r) => {
+        if (r.status === 'admin_approved') map['Approved & Resolved'] += r.count;
+        else if (['forwarded', 'submitted'].includes(r.status)) map['Pending Review'] += r.count;
+        else map['Draft'] += r.count;
+      });
+
+      devStatus.rows.forEach((d) => {
+        if (d.status === 'resolved') map['Approved & Resolved'] += d.count;
+        else if (['in_progress', 'under_qa'].includes(d.status)) map['In Progress'] += d.count;
+        else map['Pending Review'] += d.count;
+      });
+
+      desStatus.rows.forEach((d) => {
+        if (d.status === 'resolved') map['Approved & Resolved'] += d.count;
+        else if (['in_progress', 'under_qa'].includes(d.status)) map['In Progress'] += d.count;
+        else map['Pending Review'] += d.count;
+      });
+
+      byStatus = Object.keys(map).map((k) => ({ status: k, count: map[k] }));
+
+      // Daily trend across all modules for last 7 days
+      const rTrend = await pool.query(
+        `SELECT report_date::date::text AS day, COUNT(*)::int AS count FROM reports WHERE report_date >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`
+      );
+      rTrend.rows.forEach((r) => {
+        if (trendMap[r.day] !== undefined) trendMap[r.day] += r.count;
+      });
+
+      const devTrend = await pool.query(
+        `SELECT created_at::date::text AS day, COUNT(*)::int AS count FROM dev_requests WHERE created_at >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`
+      );
+      devTrend.rows.forEach((d) => {
+        if (trendMap[d.day] !== undefined) trendMap[d.day] += d.count;
+      });
+
+      const desTrend = await pool.query(
+        `SELECT created_at::date::text AS day, COUNT(*)::int AS count FROM design_requests WHERE created_at >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`
+      );
+      desTrend.rows.forEach((d) => {
+        if (trendMap[d.day] !== undefined) trendMap[d.day] += d.count;
+      });
     } else if (role === 'developer') {
-      roleConditions.push(`employee_id = -1`); // developer has no direct reports
-    }
+      const devStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM dev_requests WHERE developer_id=$1 OR developer_id IS NULL GROUP BY status`,
+        [req.user.id]
+      );
+      byStatus = devStatus.rows;
 
-    // Date filtering for byStatus
-    const dateCond = getDateCondition(req.query, 'report_date');
-    let statusConditions = [...roleConditions];
-    let statusParams = [...baseParams];
+      const devTrend = await pool.query(
+        `SELECT created_at::date::text AS day, COUNT(*)::int AS count FROM dev_requests WHERE (developer_id=$1 OR developer_id IS NULL) AND created_at >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`,
+        [req.user.id]
+      );
+      devTrend.rows.forEach((d) => {
+        if (trendMap[d.day] !== undefined) trendMap[d.day] += d.count;
+      });
+    } else if (role === 'designer' || role === 'editor') {
+      const desStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM design_requests WHERE designer_id=$1 OR designer_id IS NULL GROUP BY status`,
+        [req.user.id]
+      );
+      byStatus = desStatus.rows;
 
-    if (dateCond) {
-      if (dateCond.custom) {
-        statusConditions.push(`report_date >= $${paramIdx++} AND report_date <= $${paramIdx++}`);
-        statusParams.push(dateCond.custom.from, dateCond.custom.to);
-      } else {
-        statusConditions.push(dateCond.sql);
-      }
-    }
-
-    const statusWhere = statusConditions.length ? `WHERE ${statusConditions.join(' AND ')}` : '';
-    const byStatus = await pool.query(
-      `SELECT status, COUNT(*)::int AS count FROM reports ${statusWhere} GROUP BY status`,
-      statusParams
-    );
-
-    // Trend / Daily Volume series
-    let trendWhere = [...roleConditions];
-    let trendParams = [...baseParams];
-    let tIdx = paramIdx;
-
-    if (range === 'today') {
-      trendWhere.push(`report_date = CURRENT_DATE`);
-    } else if (range === 'yesterday') {
-      trendWhere.push(`report_date = (CURRENT_DATE - INTERVAL '1 day')::date`);
-    } else if (range === '30d') {
-      trendWhere.push(`report_date >= (CURRENT_DATE - INTERVAL '29 days')::date AND report_date <= CURRENT_DATE`);
-    } else if (range === 'custom' && from && to) {
-      trendWhere.push(`report_date >= $${tIdx++} AND report_date <= $${tIdx++}`);
-      trendParams.push(from, to);
+      const desTrend = await pool.query(
+        `SELECT created_at::date::text AS day, COUNT(*)::int AS count FROM design_requests WHERE (designer_id=$1 OR designer_id IS NULL) AND created_at >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`,
+        [req.user.id]
+      );
+      desTrend.rows.forEach((d) => {
+        if (trendMap[d.day] !== undefined) trendMap[d.day] += d.count;
+      });
     } else {
-      // default 7 days
-      trendWhere.push(`report_date >= (CURRENT_DATE - INTERVAL '6 days')::date AND report_date <= CURRENT_DATE`);
+      // employee / team_lead
+      let where = 'WHERE employee_id = $1';
+      let params = [req.user.id];
+      if (role === 'team_lead') {
+        where = 'WHERE team_lead_id = $1';
+      }
+      const rStatus = await pool.query(
+        `SELECT status, COUNT(*)::int AS count FROM reports ${where} GROUP BY status`,
+        params
+      );
+      byStatus = rStatus.rows;
+
+      const rTrend = await pool.query(
+        `SELECT report_date::date::text AS day, COUNT(*)::int AS count FROM reports ${where} AND report_date >= (CURRENT_DATE - INTERVAL '6 days')::date GROUP BY day`,
+        params
+      );
+      rTrend.rows.forEach((r) => {
+        if (trendMap[r.day] !== undefined) trendMap[r.day] += r.count;
+      });
     }
 
-    const trendWhereClause = trendWhere.length ? `WHERE ${trendWhere.join(' AND ')}` : '';
-    const trendQuery = await pool.query(
-      `SELECT report_date::date AS day, COUNT(*)::int AS count
-       FROM reports ${trendWhereClause}
-       GROUP BY day ORDER BY day ASC`,
-      trendParams
-    );
+    const trend = last7Days.map((day) => ({
+      day,
+      count: trendMap[day] || 0,
+    }));
 
     res.json({
       success: true,
       range,
-      byStatus: byStatus.rows,
-      last7: trendQuery.rows,
-      trend: trendQuery.rows,
+      byStatus,
+      last7: trend,
+      trend,
     });
   } catch (err) {
     next(err);

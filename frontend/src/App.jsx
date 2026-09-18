@@ -21,6 +21,7 @@ import DevRequestDetail from './pages/DevRequestDetail';
 import DesignRequests from './pages/DesignRequests';
 import DesignRequestForm from './pages/DesignRequestForm';
 import DesignRequestDetail from './pages/DesignRequestDetail';
+import SupervisorConsole from './pages/SupervisorConsole';
 
 // wrap a page with the app layout + auth
 const P = ({ children, roles }) => (
@@ -59,6 +60,8 @@ export default function App() {
       <Route path="/design-requests" element={<P><DesignRequests /></P>} />
       <Route path="/design-requests/new" element={<P roles={['employee']}><DesignRequestForm /></P>} />
       <Route path="/design-requests/:id" element={<P><DesignRequestDetail /></P>} />
+
+      <Route path="/supervisor" element={<P roles={['supervisor', 'admin', 'super_admin']}><SupervisorConsole /></P>} />
 
       <Route path="/audit" element={<P roles={['super_admin']}><AuditLogs /></P>} />
       <Route path="/change-password" element={<P><ChangePassword /></P>} />

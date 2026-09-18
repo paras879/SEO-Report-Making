@@ -1,25 +1,13 @@
 const { pool } = require('../config/db');
 
 // ---- permission: who can chat with whom ----
-// Rules:
-//  - super_admin -> ONLY admins (aur koi nahi)
-//  - admin       -> everyone (super_admin, admins, team_leads, employees)
-//  - team_lead   -> admins + own-team employees   (super_admin NOT shown)
-//  - employee    -> own team lead + admins          (super_admin NOT shown)
 function canChat(me, other) {
   if (!other || me.id === other.id) return false;
-  // super_admin sirf admin se
+  // super_admin -> only admins
   if (me.role === 'super_admin') return other.role === 'admin';
   if (other.role === 'super_admin') return me.role === 'admin';
-  // admin sabse (super handled above)
-  if (me.role === 'admin' || other.role === 'admin') return true;
-  // developer <-> team_lead or admin
-  if (me.role === 'developer' && ['team_lead', 'admin'].includes(other.role)) return true;
-  if (other.role === 'developer' && ['team_lead', 'admin'].includes(me.role)) return true;
-  // team_lead <-> apni team ke employee
-  if (me.role === 'team_lead' && other.role === 'employee' && other.team_id && other.team_id === me.team_id) return true;
-  if (me.role === 'employee' && other.role === 'team_lead' && other.team_id && other.team_id === me.team_id) return true;
-  return false;
+  // All other active users (admin, team_lead, developer, designer, employee) can chat with each other
+  return true;
 }
 
 // allowed contacts ka SQL condition (u = users alias)
@@ -30,16 +18,8 @@ function contactCondition(me, params) {
   if (me.role === 'super_admin') {
     return "u.role = 'admin'"; // sirf admins
   }
-  if (me.role === 'developer') {
-    return "u.role IN ('admin', 'team_lead')";
-  }
-  if (me.role === 'team_lead') {
-    params.push(me.team_id);
-    return `(u.role IN ('admin', 'developer') OR (u.role='employee' AND u.team_id = $${params.length}))`;
-  }
-  // employee
-  params.push(me.team_id);
-  return `(u.role='admin' OR (u.role='team_lead' AND u.team_id = $${params.length}))`;
+  // All active team members (excluding super_admin)
+  return "u.role <> 'super_admin'";
 }
 
 

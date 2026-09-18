@@ -4,28 +4,40 @@ import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import { PRIORITY_STYLE } from '../constants';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const TITLES = {
   super_admin: 'All Reports', admin: 'Forwarded Reports',
-  team_lead: 'Team Reports', employee: 'My Reports',
+  team_lead: 'Team Reports', employee: 'My Reports', supervisor: 'Supervisor Reports Center',
 };
 
 export default function Reports() {
   const { user } = useAuth();
   const [reports, setReports] = useState([]);
   const [status, setStatus] = useState('');
+  const [dateFilter, setDateFilter] = useState({ range: 'all', from: '', to: '' });
   const [err, setErr] = useState('');
 
   const load = () => {
-    const q = status ? `?status=${status}` : '';
-    api.get(`/reports${q}`).then((r) => setReports(r.data.reports)).catch((e) => setErr(e.response?.data?.message || 'Failed'));
-  };
-  useEffect(load, [status]);
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (dateFilter.from) params.set('from', dateFilter.from);
+    if (dateFilter.to) params.set('to', dateFilter.to);
+    const q = params.toString() ? `?${params.toString()}` : '';
 
-  const canExport = ['admin', 'super_admin'].includes(user.role);
+    api.get(`/reports${q}`).then((r) => setReports(r.data.reports || [])).catch((e) => setErr(e.response?.data?.message || 'Failed'));
+  };
+  useEffect(load, [status, dateFilter]);
+
+  const canExport = ['admin', 'super_admin', 'supervisor'].includes(user.role);
   const exportCsv = async () => {
     try {
-      const q = status ? `?status=${status}` : '';
+      const params = new URLSearchParams();
+      if (status) params.set('status', status);
+      if (dateFilter.from) params.set('from', dateFilter.from);
+      if (dateFilter.to) params.set('to', dateFilter.to);
+      const q = params.toString() ? `?${params.toString()}` : '';
+
       const res = await api.get(`/reports/export/csv${q}`, { responseType: 'blob' });
       const url = URL.createObjectURL(res.data);
       const a = document.createElement('a');
@@ -34,12 +46,11 @@ export default function Reports() {
     } catch (e) { setErr('Export failed'); }
   };
 
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{TITLES[user.role]}</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">{TITLES[user.role] || 'Reports Overview'}</h1>
           <p className="text-xs text-slate-500 mt-1">Review, track, and manage all campaign deliverables</p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -66,18 +77,21 @@ export default function Reports() {
       )}
 
       {/* Filter Toolbar */}
-      <div className="card p-3.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filter By Status:</span>
-          <select className="input py-1.5 px-3 text-xs max-w-xs" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="submitted">Submitted to TL</option>
-            <option value="tl_rejected">Returned by TL</option>
-            <option value="forwarded">Forwarded to Admin</option>
-            <option value="admin_rejected">Returned by Admin</option>
-            <option value="admin_approved">Approved</option>
-          </select>
+      <div className="card p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status:</span>
+            <select className="input py-1.5 px-3 text-xs max-w-xs font-semibold" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="submitted">Submitted to TL</option>
+              <option value="tl_rejected">Returned by TL</option>
+              <option value="forwarded">Forwarded to Admin</option>
+              <option value="admin_rejected">Returned by Admin</option>
+              <option value="admin_approved">Approved</option>
+            </select>
+          </div>
+          <DateRangeFilter onChange={setDateFilter} />
         </div>
         <span className="text-xs font-semibold text-slate-400">
           Showing {reports.length} {reports.length === 1 ? 'report' : 'reports'}

@@ -8,15 +8,16 @@ const ctrl = require('../controllers/designRequestController');
 const router = express.Router();
 router.use(authenticate);
 
-// designers list for TL/admin to assign
-router.get('/designers', authorize('team_lead', 'admin', 'super_admin'), ctrl.listDesigners);
+// designers list for employees/TL/admin to assign
+router.get('/designers', authorize('employee', 'team_lead', 'admin', 'super_admin'), ctrl.listDesigners);
 
 // export CSV
 router.get('/export', authorize('team_lead', 'designer', 'admin', 'super_admin', 'employee'), ctrl.exportCSV);
 
-// list + detail
+// list + detail + delete
 router.get('/', ctrl.listRequests);
 router.get('/:id', ctrl.getRequest);
+router.delete('/:id', ctrl.deleteRequest);
 
 // employee single request
 router.post('/', authorize('employee'), ctrl.createRequest);

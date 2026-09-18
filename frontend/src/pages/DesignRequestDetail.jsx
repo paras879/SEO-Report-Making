@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 export default function DesignRequestDetail() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [events, setEvents] = useState([]);
   const [designers, setDesigners] = useState([]);
@@ -194,13 +195,13 @@ export default function DesignRequestDetail() {
   if (error || !request) return <div className="p-10 text-center text-red-500 font-semibold">{error || 'Request not found'}</div>;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <Link to="/design-requests" className="text-slate-400 hover:text-slate-600 text-xs font-semibold">
-              ← Back to Designer Requests
+              ← Back to Editor Requests
             </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-1">
               {request.title || `${request.category} Request`}
@@ -325,110 +326,134 @@ export default function DesignRequestDetail() {
         {/* Sidebar Actions & Info (1 col) */}
         <div className="space-y-6">
           {/* Action Control Panel */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Workflow Actions</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Workflow Actions</h3>
 
-            {/* Assign Designer (TL / Admin) */}
-            {['team_lead', 'admin', 'super_admin'].includes(user.role) && request.status !== 'resolved' && (
-              <form onSubmit={handleForward} className="space-y-2 border-b border-slate-100 pb-4">
-                <label className="block text-xs font-semibold text-slate-700">Assign to Designer</label>
-                <select
-                  value={selectedDesigner}
-                  onChange={(e) => setSelectedDesigner(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
-                >
-                  <option value="">Select Designer...</option>
-                  {designers.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name} (@{d.username})</option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  disabled={!selectedDesigner || actionLoading}
-                  className="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm disabled:opacity-50"
-                >
-                  Assign Designer
-                </button>
-              </form>
-            )}
-
-            {/* Designer Start Progress */}
-            {(user.role === 'designer' || ['admin', 'super_admin'].includes(user.role)) && request.status === 'forwarded' && (
-              <button
-                onClick={handleStartProgress}
-                disabled={actionLoading}
-                className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md"
+          {/* Assign Editor (TL / Admin) */}
+          {['team_lead', 'admin', 'super_admin'].includes(user.role) && request.status !== 'resolved' && (
+            <form onSubmit={handleForward} className="space-y-2 border-b border-slate-100 pb-4">
+              <label className="block text-xs font-semibold text-slate-700">Assign to Editor</label>
+              <select
+                value={selectedDesigner}
+                onChange={(e) => setSelectedDesigner(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white"
               >
-                🎨 Start Working On Visuals
-              </button>
-            )}
-
-            {/* Designer Submit for Review */}
-            {(user.role === 'designer' || ['admin', 'super_admin'].includes(user.role)) && ['in_progress', 'reopened'].includes(request.status) && (
+                <option value="">Select Editor...</option>
+                {designers.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name} (@{d.username})</option>
+                ))}
+              </select>
               <button
-                onClick={() => setActiveModal('qa')}
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md"
+                type="submit"
+                disabled={!selectedDesigner || actionLoading}
+                className="w-full py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm disabled:opacity-50"
               >
-                🔍 Submit Designs for QA / Review
+                Assign Editor
               </button>
-            )}
+            </form>
+          )}
 
-            {/* Resolve / Complete Request */}
-            {request.status !== 'resolved' && (
-              <button
-                onClick={() => setActiveModal('resolve')}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
-              >
-                ✅ Mark as Completed
-              </button>
-            )}
+          {/* Editor Start Progress */}
+          {(user.role === 'designer' || ['admin', 'super_admin'].includes(user.role)) && request.status === 'forwarded' && (
+            <button
+              onClick={handleStartProgress}
+              disabled={actionLoading}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md"
+            >
+              ✍️ Start Working On Visuals
+            </button>
+          )}
 
-            {/* Reopen Request */}
-            {request.status === 'resolved' && (
-              <button
-                onClick={() => setActiveModal('reopen')}
-                className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md"
-              >
-                🔄 Re-open Request
-              </button>
-            )}
+          {/* Designer Submit for Review */}
+          {(user.role === 'designer' || ['admin', 'super_admin'].includes(user.role)) && ['in_progress', 'reopened'].includes(request.status) && (
+            <button
+              onClick={() => setActiveModal('qa')}
+              className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md"
+            >
+              🔍 Submit Designs for QA / Review
+            </button>
+          )}
+
+          {/* Resolve / Complete Request */}
+          {request.status !== 'resolved' && (
+            <button
+              onClick={() => setActiveModal('resolve')}
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md"
+            >
+              ✅ Mark as Completed
+            </button>
+          )}
+
+          {/* Reopen Request */}
+          {request.status === 'resolved' && (
+            <button
+              onClick={() => setActiveModal('reopen')}
+              className="w-full py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-md"
+            >
+              🔄 Re-open Request
+            </button>
+          )}
+
+          {/* Delete Request (Creator / TL / Admin) */}
+          {(request.employee_id === user.id || ['admin', 'super_admin', 'team_lead'].includes(user.role)) && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (!window.confirm('Are you sure you want to delete this design request permanently?')) return;
+                setActionLoading(true);
+                try {
+                  const res = await api.delete(`/design-requests/${id}`);
+                  if (res.data.success) {
+                    navigate('/design-requests');
+                  } else {
+                    alert(res.data.message || 'Failed to delete request');
+                  }
+                } catch (err) {
+                  alert(err.response?.data?.message || 'Failed to delete request');
+                } finally {
+                  setActionLoading(false);
+                }
+              }}
+              disabled={actionLoading}
+              className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold text-xs border border-rose-200 transition-colors shadow-xs flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+            >
+              <span>🗑️</span> Delete Request
+            </button>
+          )}
+        </div>
+
+        {/* Request Metadata Info */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-3 text-xs">
+          <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-2">Ticket Info</h3>
+          <div className="flex justify-between text-slate-600">
+            <span>Raised By:</span>
+            <span className="font-semibold text-slate-900">{request.employee_name}</span>
           </div>
-
-          {/* Request Metadata Info */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-3 text-xs">
-            <h3 className="font-bold text-slate-900 border-b border-slate-100 pb-2">Ticket Info</h3>
-            <div className="flex justify-between text-slate-600">
-              <span>Raised By:</span>
-              <span className="font-semibold text-slate-900">{request.employee_name}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Team Lead:</span>
-              <span className="font-semibold text-slate-900">{request.team_lead_name || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Designer:</span>
-              <span className="font-semibold text-indigo-600">{request.designer_name || 'Unassigned'}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Hours Logged:</span>
-              <span className="font-semibold text-slate-900">{request.hours_spent} hrs</span>
-            </div>
-            {request.due_date && (
-              <div className="flex justify-between text-slate-600">
-                <span>Due Date:</span>
-                <span className="font-semibold text-rose-600">{new Date(request.due_date).toLocaleDateString()}</span>
-              </div>
-            )}
+          <div className="flex justify-between text-slate-600">
+            <span>Team Lead:</span>
+            <span className="font-semibold text-slate-900">{request.team_lead_name || 'N/A'}</span>
           </div>
+          <div className="flex justify-between text-slate-600">
+            <span>Editor:</span>
+            <span className="font-semibold text-indigo-600">{request.designer_name || 'Unassigned'}</span>
+          </div>
+          <div className="flex justify-between text-slate-600">
+            <span>Hours Logged:</span>
+            <span className="font-semibold text-slate-900">{request.hours_spent} hrs</span>
+          </div>
+          {request.due_date && (
+            <div className="flex justify-between text-slate-600">
+              <span>Due Date:</span>
+              <span className="font-semibold text-rose-600">{new Date(request.due_date).toLocaleDateString()}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* MODALS */}
       {/* QA Modal */}
       {activeModal === 'qa' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <form onSubmit={handleSubmitQA} className="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full space-y-4">
-            <h3 className="font-bold text-slate-900 text-base">Submit Designs for Review</h3>
+            <h3 className="font-bold text-slate-900 text-base">Submit Work for Review</h3>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Description / Asset Link</label>
               <textarea
@@ -463,7 +488,7 @@ export default function DesignRequestDetail() {
       {activeModal === 'resolve' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
           <form onSubmit={handleResolve} className="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full space-y-4">
-            <h3 className="font-bold text-slate-900 text-base">Mark Design Request Completed</h3>
+            <h3 className="font-bold text-slate-900 text-base">Mark Editor Request Completed</h3>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Resolution Summary</label>
               <textarea

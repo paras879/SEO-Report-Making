@@ -55,19 +55,26 @@ function cleanAttachments(raw) {
 }
 
 async function canAccess(user, r) {
-  if (['super_admin', 'admin'].includes(user.role)) return true;
+  if (['super_admin', 'admin', 'supervisor'].includes(user.role)) return true;
   if (user.role === 'team_lead') return r.team_lead_id === user.id;
   if (user.role === 'developer') return r.developer_id === user.id;
   return r.employee_id === user.id; // employee
 }
 
-// GET /api/dev-requests/developers  -> active developers (TL/admin picks one)
+// GET /api/dev-requests/developers -> active developers (or team members if none tagged developer yet)
 async function listDevelopers(req, res, next) {
   try {
     const { rows } = await pool.query(
-      "SELECT id, name, username FROM users WHERE role='developer' AND is_active=TRUE ORDER BY name"
+      "SELECT id, name, username, role FROM users WHERE role='developer' AND is_active=TRUE ORDER BY name"
     );
-    res.json({ success: true, developers: rows });
+    if (rows.length > 0) {
+      return res.json({ success: true, developers: rows });
+    }
+    // Fallback: return active team lead, admin, super_admin if no user has role='developer' yet
+    const fallback = await pool.query(
+      "SELECT id, name, username, role FROM users WHERE role IN ('developer', 'team_lead', 'admin', 'super_admin') AND is_active=TRUE ORDER BY name"
+    );
+    res.json({ success: true, developers: fallback.rows });
   } catch (err) { next(err); }
 }
 
@@ -91,31 +98,51 @@ async function createRequest(req, res, next) {
     const dueDate = req.body.due_date ? String(req.body.due_date).trim() : null;
     const credentialsNote = req.body.credentials_note ? String(req.body.credentials_note).trim().slice(0, 3000) : null;
     const attachments = cleanAttachments(req.body.attachments);
+    const developerId = req.body.developer_id ? Number(req.body.developer_id) : null;
+    if (!developerId) {
+      return res.status(422).json({ success: false, message: 'Please select a developer to assign this request' });
+    }
+
+    let devName = null;
+    const devRes = await pool.query("SELECT id, name FROM users WHERE id=$1 AND is_active=TRUE", [developerId]);
+    if (devRes.rows[0]) {
+      devName = devRes.rows[0].name;
+    }
 
     const team = await pool.query('SELECT team_lead_id FROM teams WHERE id=$1', [req.user.team_id]);
     const teamLeadId = team.rows[0]?.team_lead_id || null;
 
+    const status = 'forwarded';
+    const currentLevel = 'developer';
+
     const { rows } = await pool.query(
       `INSERT INTO dev_requests
-        (employee_id, team_id, team_lead_id, title, description, sites, priority,
+        (employee_id, team_id, team_lead_id, developer_id, title, description, sites, priority,
          status, current_level, category, client_name, due_date, credentials_note, attachments)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'submitted','team_lead',$8,$9,$10,$11,$12) RETURNING ${REQ_COLS}`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING ${REQ_COLS}`,
       [
-        req.user.id, req.user.team_id, teamLeadId, title, req.body.description || null,
-        JSON.stringify(cs.sites), priority, category, clientName, dueDate || null,
+        req.user.id, req.user.team_id, teamLeadId, developerId, title, req.body.description || null,
+        JSON.stringify(cs.sites), priority, status, currentLevel, category, clientName, dueDate || null,
         credentialsNote, JSON.stringify(attachments),
       ]
     );
     const request = rows[0];
 
+    const eventMsg = `Request raised [Category: ${category}] and assigned to developer ${devName || 'Developer'}`;
+
     await pool.query(
       `INSERT INTO dev_request_events (request_id, actor_id, actor_role, action, message)
        VALUES ($1,$2,'employee','submitted',$3)`,
-      [request.id, req.user.id, `Request raised [Category: ${category}] and sent to team lead`]
+      [request.id, req.user.id, eventMsg]
     );
-    if (teamLeadId) {
-      await notify({ userId: teamLeadId, title: 'New developer request', message: `${req.user.name}: ${title}` });
+
+    if (developerId) {
+      await notify({ userId: developerId, title: 'New developer request assigned 🛠️', message: `${req.user.name} assigned you: ${title}` });
     }
+    if (teamLeadId) {
+      await notify({ userId: teamLeadId, title: 'New developer request raised', message: `${req.user.name}: ${title}${devName ? ` (Assigned to ${devName})` : ''}` });
+    }
+
     await logAudit({ userId: req.user.id, action: 'devreq_created', entityType: 'dev_request', entityId: request.id, req });
     res.status(201).json({ success: true, request });
   } catch (err) { next(err); }
@@ -299,6 +326,23 @@ async function resolveRequest(req, res, next) {
     for (const a of admins.rows) {
       if (a.id !== req.user.id) await notify({ userId: a.id, title: 'Dev request resolved', message: `${req.user.name}: ${request.title}` });
     }
+
+    // Auto send direct chat message to employee when resolved by developer/team
+    if (request.employee_id && req.user.id !== request.employee_id) {
+      try {
+        await pool.query(
+          `INSERT INTO messages (sender_id, receiver_id, body) VALUES ($1,$2,$3)`,
+          [
+            req.user.id,
+            request.employee_id,
+            `✅ Your Developer Request "${request.title || 'Technical Issue'}" has been marked RESOLVED!\n\nResolution Details: ${message}`,
+          ]
+        );
+      } catch (e) {
+        console.error('Failed to send auto chat message on resolve', e);
+      }
+    }
+
     await logAudit({ userId: req.user.id, action: 'devreq_resolved', entityType: 'dev_request', entityId: request.id, req });
     res.json({ success: true, request: rows[0] });
   } catch (err) { next(err); }
@@ -336,7 +380,11 @@ async function listRequests(req, res, next) {
     let i = 1;
     if (req.user.role === 'employee') { conds.push(`r.employee_id=$${i++}`); params.push(req.user.id); }
     else if (req.user.role === 'team_lead') { conds.push(`r.team_lead_id=$${i++}`); params.push(req.user.id); }
-    else if (req.user.role === 'developer') { conds.push(`r.developer_id=$${i++}`); params.push(req.user.id); }
+    else if (req.user.role === 'developer') {
+      conds.push(`(r.developer_id=$${i} OR r.developer_id IS NULL)`);
+      params.push(req.user.id);
+      i++;
+    }
     // admin/super_admin -> all
 
     if (req.query.status) { conds.push(`r.status=$${i++}`); params.push(req.query.status); }
@@ -349,6 +397,8 @@ async function listRequests(req, res, next) {
       params.push(`%${req.query.search.trim()}%`);
       i++;
     }
+    if (req.query.from) { conds.push(`r.created_at >= $${i++}`); params.push(req.query.from); }
+    if (req.query.to) { conds.push(`r.created_at <= $${i++}`); params.push(req.query.to); }
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const { rows } = await pool.query(
@@ -441,8 +491,31 @@ async function getRequest(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// DELETE /api/dev-requests/:id
+async function deleteRequest(req, res, next) {
+  try {
+    const r = await pool.query('SELECT * FROM dev_requests WHERE id=$1', [req.params.id]);
+    const request = r.rows[0];
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    const isCreator = request.employee_id === req.user.id;
+    const isTL = req.user.role === 'team_lead' && request.team_lead_id === req.user.id;
+    const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
+
+    if (!isCreator && !isTL && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Only creator, assigned team lead, or admin can delete this request' });
+    }
+
+    await pool.query('DELETE FROM dev_request_events WHERE request_id=$1', [req.params.id]);
+    await pool.query('DELETE FROM dev_requests WHERE id=$1', [req.params.id]);
+
+    await logAudit({ userId: req.user.id, action: 'devreq_deleted', entityType: 'dev_request', entityId: req.params.id, req });
+    res.json({ success: true, message: 'Developer request deleted successfully' });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   listDevelopers, createRequest, forwardToDeveloper, startProgress, submitForQA,
-  tlReject, reopenRequest, resolveRequest, addComment, listRequests, getRequest, exportCSV,
+  tlReject, reopenRequest, resolveRequest, addComment, listRequests, getRequest, exportCSV, deleteRequest,
 };
 

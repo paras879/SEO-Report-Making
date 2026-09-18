@@ -28,9 +28,9 @@ function cleanAttachments(raw) {
 }
 
 async function canAccess(user, r) {
-  if (['super_admin', 'admin'].includes(user.role)) return true;
+  if (['super_admin', 'admin', 'supervisor'].includes(user.role)) return true;
   if (user.role === 'team_lead') return r.team_lead_id === user.id;
-  if (user.role === 'designer') return r.designer_id === user.id;
+  if (['designer', 'editor'].includes(user.role)) return r.designer_id === user.id;
   return r.employee_id === user.id;
 }
 
@@ -38,9 +38,15 @@ async function canAccess(user, r) {
 async function listDesigners(req, res, next) {
   try {
     const { rows } = await pool.query(
-      "SELECT id, name, username FROM users WHERE role='designer' AND is_active=TRUE ORDER BY name"
+      "SELECT id, name, username, role FROM users WHERE role='designer' AND is_active=TRUE ORDER BY name"
     );
-    res.json({ success: true, designers: rows });
+    if (rows.length > 0) {
+      return res.json({ success: true, designers: rows });
+    }
+    const fallback = await pool.query(
+      "SELECT id, name, username, role FROM users WHERE role IN ('designer', 'team_lead', 'admin', 'super_admin') AND is_active=TRUE ORDER BY name"
+    );
+    res.json({ success: true, designers: fallback.rows });
   } catch (err) { next(err); }
 }
 
@@ -52,6 +58,11 @@ async function createRequest(req, res, next) {
     }
     if (!req.user.team_id) {
       return res.status(422).json({ success: false, message: 'You are not assigned to any team yet. Contact admin.' });
+    }
+
+    const designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    if (!designerId) {
+      return res.status(422).json({ success: false, message: 'Please select a designer to assign this request' });
     }
 
     const category = String(req.body.category || 'On-Page').trim();
@@ -69,11 +80,11 @@ async function createRequest(req, res, next) {
 
     const { rows } = await pool.query(
       `INSERT INTO design_requests
-        (employee_id, team_id, team_lead_id, title, category, blog_category, keywords, points_to_include,
+        (employee_id, team_id, team_lead_id, designer_id, title, category, blog_category, keywords, points_to_include,
          priority, status, current_level, client_name, due_date, attachments)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'submitted','team_lead',$10,$11,$12) RETURNING ${REQ_COLS}`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'forwarded','designer',$11,$12,$13) RETURNING ${REQ_COLS}`,
       [
-        req.user.id, req.user.team_id, teamLeadId, title, category, blogCategory, keywords, pointsToInclude,
+        req.user.id, req.user.team_id, teamLeadId, designerId, title, category, blogCategory, keywords, pointsToInclude,
         priority, clientName, dueDate || null, JSON.stringify(attachments),
       ]
     );
@@ -82,8 +93,16 @@ async function createRequest(req, res, next) {
     await pool.query(
       `INSERT INTO design_request_events (request_id, actor_id, actor_role, action, message)
        VALUES ($1,$2,'employee','submitted',$3)`,
-      [request.id, req.user.id, `Design Request raised [Category: ${category}${blogCategory ? `, Blog Category: ${blogCategory}` : ''}]`]
+      [request.id, req.user.id, `Design Request raised & assigned to designer [Category: ${category}${blogCategory ? `, Blog Category: ${blogCategory}` : ''}]`]
     );
+
+    if (designerId) {
+      await notify({
+        userId: designerId,
+        title: 'New Designer Request Assigned 🎨',
+        message: `${req.user.name} assigned you a design request (${category}${title ? `: ${title}` : ''})`,
+      });
+    }
 
     if (teamLeadId) {
       await notify({
@@ -106,6 +125,11 @@ async function createBulkCSVRequests(req, res, next) {
     }
     if (!req.user.team_id) {
       return res.status(422).json({ success: false, message: 'You are not assigned to any team yet. Contact admin.' });
+    }
+
+    const designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    if (!designerId) {
+      return res.status(422).json({ success: false, message: 'Please select a designer to assign these bulk requests' });
     }
 
     const { items } = req.body;
@@ -131,11 +155,11 @@ async function createBulkCSVRequests(req, res, next) {
 
         const resDb = await client.query(
           `INSERT INTO design_requests
-            (employee_id, team_id, team_lead_id, title, category, blog_category, keywords, points_to_include,
+            (employee_id, team_id, team_lead_id, designer_id, title, category, blog_category, keywords, points_to_include,
              priority, status, current_level, client_name)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'submitted','team_lead',$10) RETURNING ${REQ_COLS}`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'forwarded','designer',$11) RETURNING ${REQ_COLS}`,
           [
-            req.user.id, req.user.team_id, teamLeadId, title, category, blogCategory, keywords, pointsToInclude,
+            req.user.id, req.user.team_id, teamLeadId, designerId, title, category, blogCategory, keywords, pointsToInclude,
             priority, clientName,
           ]
         );
@@ -145,7 +169,7 @@ async function createBulkCSVRequests(req, res, next) {
         await client.query(
           `INSERT INTO design_request_events (request_id, actor_id, actor_role, action, message)
            VALUES ($1,$2,'employee','submitted',$3)`,
-          [reqObj.id, req.user.id, `Bulk CSV upload row created`]
+          [reqObj.id, req.user.id, `Bulk CSV upload row created and assigned to designer`]
         );
       }
       await client.query('COMMIT');
@@ -154,6 +178,14 @@ async function createBulkCSVRequests(req, res, next) {
       throw e;
     } finally {
       client.release();
+    }
+
+    if (designerId) {
+      await notify({
+        userId: designerId,
+        title: 'Bulk Designer Requests Assigned 🎨',
+        message: `${req.user.name} assigned ${insertedRequests.length} design requests to you via CSV.`,
+      });
     }
 
     if (teamLeadId && insertedRequests.length > 0) {
@@ -293,6 +325,23 @@ async function resolveRequest(req, res, next) {
     for (const uid of targets) {
       if (uid !== req.user.id) await notify({ userId: uid, title: 'Design completed ✅', message: `${req.user.name}: ${message.slice(0, 60)}` });
     }
+
+    // Auto send direct chat message to employee when resolved by editor/team
+    if (request.employee_id && req.user.id !== request.employee_id) {
+      try {
+        await pool.query(
+          `INSERT INTO messages (sender_id, receiver_id, body) VALUES ($1,$2,$3)`,
+          [
+            req.user.id,
+            request.employee_id,
+            `✅ Your Editor Request "${request.title || 'Visual Graphic'}" has been marked COMPLETED!\n\nResolution Details: ${message}`,
+          ]
+        );
+      } catch (e) {
+        console.error('Failed to send auto chat message on design resolve', e);
+      }
+    }
+
     res.json({ success: true, request: rows[0] });
   } catch (err) { next(err); }
 }
@@ -381,6 +430,8 @@ async function listRequests(req, res, next) {
       params.push(`%${req.query.search.trim()}%`);
       i++;
     }
+    if (req.query.from) { conds.push(`r.created_at >= $${i++}`); params.push(req.query.from); }
+    if (req.query.to) { conds.push(`r.created_at <= $${i++}`); params.push(req.query.to); }
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const { rows } = await pool.query(
@@ -480,6 +531,29 @@ async function getRequest(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// DELETE /api/design-requests/:id
+async function deleteRequest(req, res, next) {
+  try {
+    const r = await pool.query('SELECT * FROM design_requests WHERE id=$1', [req.params.id]);
+    const request = r.rows[0];
+    if (!request) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    const isCreator = request.employee_id === req.user.id;
+    const isTL = req.user.role === 'team_lead' && request.team_lead_id === req.user.id;
+    const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
+
+    if (!isCreator && !isTL && !isAdmin) {
+      return res.status(403).json({ success: false, message: 'Only creator, assigned team lead, or admin can delete this request' });
+    }
+
+    await pool.query('DELETE FROM design_request_events WHERE request_id=$1', [req.params.id]);
+    await pool.query('DELETE FROM design_requests WHERE id=$1', [req.params.id]);
+
+    await logAudit({ userId: req.user.id, action: 'designreq_deleted', entityType: 'design_request', entityId: req.params.id, req });
+    res.json({ success: true, message: 'Design request deleted successfully' });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   listDesigners,
   createRequest,
@@ -494,4 +568,5 @@ module.exports = {
   listRequests,
   getRequest,
   exportCSV,
+  deleteRequest,
 };

@@ -1,30 +1,102 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 
 const CATEGORIES = [
-  { id: 'On-Page', label: 'On-Page Graphic / Banner', icon: '🖼️' },
-  { id: 'Blog Request', label: 'Blog Request Visuals', icon: '✍️' },
-  { id: 'Social Media / Infographics', label: 'Social Media & Infographic', icon: '📱' },
-  { id: 'Custom Graphic', label: 'Custom Graphic / UI Design', icon: '🎨' },
+  {
+    id: 'On-Page',
+    label: 'On-Page Graphic / Banner',
+    desc: 'Website hero & service page banners',
+    icon: '🖼️',
+    gradient: 'from-blue-600 to-indigo-600',
+  },
+  {
+    id: 'Blog Request',
+    label: 'Blog Request Visuals',
+    desc: 'Featured images & blog graphics',
+    icon: '✍️',
+    gradient: 'from-indigo-600 to-purple-600',
+  },
+  {
+    id: 'Social Media / Infographics',
+    label: 'Social Media & Infographic',
+    desc: 'Infographics, carousels & social posts',
+    icon: '📱',
+    gradient: 'from-purple-600 to-pink-600',
+  },
+  {
+    id: 'Custom Graphic',
+    label: 'Custom Graphic / UI Design',
+    desc: 'Custom UI mockups & vector assets',
+    icon: '🎨',
+    gradient: 'from-pink-600 to-rose-600',
+  },
 ];
 
-const BLOG_CATEGORIES = [
-  { id: 'Information', label: 'Information (Informational Content)', desc: 'Graphics for explanatory & educational blogs' },
-  { id: 'Lexical', label: 'Lexical / Lyrical', desc: 'Visuals for word, terminology or vocabulary blogs' },
-  { id: 'Case Studies', label: 'Case Studies', desc: 'Charts & proof visuals for client case studies' },
-  { id: 'Other', label: 'General / Other', desc: 'Standard blog thumbnails & feature images' },
-];
+const CATEGORY_CONFIG = {
+  'On-Page': {
+    subCategoryLabel: 'On-Page Graphic Type',
+    subCategories: [
+      { id: 'Hero Banner', label: 'Hero Banner / Slider', desc: 'Main website hero header visual', icon: '🖼️' },
+      { id: 'Service Page Graphic', label: 'Service / Landing Page', desc: 'Visuals for service feature sections', icon: '🛠️' },
+      { id: 'CTA Banner', label: 'CTA / Offer Banner', desc: 'Promotional & conversion action banner', icon: '💡' },
+      { id: 'Section Layout Graphic', label: 'Section Illustration', desc: 'Custom vector graphic for page layout', icon: '📐' },
+    ],
+    keywordsPlaceholder: 'e.g. hero banner 1920x600, service landing page, call to action button, responsive header',
+    titlePlaceholder: 'e.g. SEO Audit Service Landing Page Hero Banner (1920x600px)',
+    templateText: `1. Dimensions & Aspect Ratio (e.g. 1920x600px desktop / 768x500px mobile)\n2. Primary Heading & Sub-heading text overlay\n3. Brand color palette & background theme (e.g. Dark Navy & Neon Blue)\n4. CTA Button text & destination link (e.g. "Get Free SEO Audit")`,
+  },
+  'Blog Request': {
+    subCategoryLabel: 'Blog Category',
+    subCategories: [
+      { id: 'Information', label: 'Information (Informational)', desc: 'Visuals for explanatory & educational blogs', icon: '📚' },
+      { id: 'Lexical', label: 'Lexical / Lyrical', desc: 'Visuals for word definitions & terms', icon: '🔤' },
+      { id: 'Case Studies', label: 'Case Studies', desc: 'Charts & proof visuals for case studies', icon: '📈' },
+      { id: 'Other', label: 'General / Other', desc: 'Standard blog thumbnails & feature images', icon: '🎨' },
+    ],
+    keywordsPlaceholder: 'e.g. backlink audit, technical seo, google indexing rate, search intent',
+    titlePlaceholder: 'e.g. Top 10 High Authority SEO Backlink Strategies Header Visual',
+    templateText: `1. Include a modern comparison bar chart of organic traffic vs paid traffic\n2. Use brand theme colors (Deep Navy #0f172a & Electric Indigo #4f46e5)\n3. Add clear typography for "150% Ranking Increase" header`,
+  },
+  'Social Media / Infographics': {
+    subCategoryLabel: 'Social Media / Infographic Format',
+    subCategories: [
+      { id: 'Data Infographic', label: 'Statistical Infographic', desc: 'Detailed data & process flowchart infographic', icon: '📊' },
+      { id: 'Social Carousel', label: 'LinkedIn / IG Carousel', desc: 'Multi-slide social post slides (1080x1080)', icon: '📱' },
+      { id: 'Post Graphic', label: 'Social Announcement', desc: 'Single promo post graphic for Twitter/LinkedIn', icon: '📢' },
+      { id: 'Story Banner', label: 'Vertical Story Banner', desc: '9:16 vertical ratio banner for Instagram/Pinterest', icon: '🎯' },
+    ],
+    keywordsPlaceholder: 'e.g. 1080x1080 square, linkedin carousel 5 slides, infographic flowchart, 9:16 story',
+    titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Carousel (5 Slides)',
+    templateText: `1. Aspect Ratio / Platform (e.g. 1080x1080 for Instagram / 1080x1350 for LinkedIn)\n2. Slide-by-slide text breakdown (Slide 1: Cover, Slide 2-4: Key points, Slide 5: CTA)\n3. Highlight key statistics or process flowchart icons\n4. Include website URL / social handle watermark`,
+  },
+  'Custom Graphic': {
+    subCategoryLabel: 'Graphic & UI Asset Type',
+    subCategories: [
+      { id: 'UI Component', label: 'Custom UI Mockup', desc: 'Mockups for UI elements, cards & calculators', icon: '🧩' },
+      { id: 'Vector Illustration', label: 'Vector Illustration', desc: 'Custom icon sets & story illustrations', icon: '🎨' },
+      { id: 'PDF / eBook', label: 'eBook / Lead Magnet Cover', desc: 'Cover & page layout graphics for downloadable PDFs', icon: '📄' },
+      { id: 'Brand Asset', label: 'Logo / Trust Seal Badge', desc: 'Badges, trust seals & brand graphics', icon: '🏷️' },
+    ],
+    keywordsPlaceholder: 'e.g. ui mockup, custom vector illustration, pdf lead magnet cover, trust badge',
+    titlePlaceholder: 'e.g. 2026 Ultimate SEO Audit Guide PDF eBook Cover Design',
+    templateText: `1. Asset Type & Format required (e.g. SVG vector / PNG transparent / Figma design)\n2. Target placement & screen usage\n3. Brand guidelines & illustration style preference\n4. Copy / Text content to embed inside graphic`,
+  },
+};
 
 export default function DesignRequestForm() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('single'); // 'single' | 'bulk'
 
+  // Designers List & Selected Designer
+  const [designers, setDesigners] = useState([]);
+  const [selectedDesigner, setSelectedDesigner] = useState('');
+
   // Single Form State
-  const [category, setCategory] = useState('Blog Request');
-  const [blogCategory, setBlogCategory] = useState('Information');
+  const [category, setCategory] = useState('On-Page');
+  const [blogCategory, setBlogCategory] = useState('Hero Banner');
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
   const [pointsToInclude, setPointsToInclude] = useState('');
@@ -41,6 +113,24 @@ export default function DesignRequestForm() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState('');
+
+  const currentConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG['On-Page'];
+  const selectedDesignerObj = designers.find((d) => String(d.id) === String(selectedDesigner));
+
+  useEffect(() => {
+    api.get('/design-requests/designers')
+      .then((r) => setDesigners(r.data.designers || []))
+      .catch(() => {});
+  }, []);
+
+  // Handle Category Change
+  const handleCategoryChange = (newCat) => {
+    setCategory(newCat);
+    const newConfig = CATEGORY_CONFIG[newCat] || CATEGORY_CONFIG['On-Page'];
+    if (newConfig.subCategories && newConfig.subCategories.length > 0) {
+      setBlogCategory(newConfig.subCategories[0].id);
+    }
+  };
 
   // Handle Image Upload / Paste
   const handleFileUpload = (e) => {
@@ -69,11 +159,16 @@ export default function DesignRequestForm() {
   const handleSubmitSingle = async (e) => {
     e.preventDefault();
     setError('');
+    if (!selectedDesigner) {
+      setError('Please select an Editor before submitting this request.');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         category,
-        blog_category: category === 'Blog Request' || category === 'On-Page' ? blogCategory : null,
+        blog_category: blogCategory || null,
         title: title.trim() || null,
         keywords: keywords.trim() || null,
         points_to_include: pointsToInclude.trim() || null,
@@ -81,6 +176,7 @@ export default function DesignRequestForm() {
         client_name: clientName.trim() || null,
         due_date: dueDate || null,
         attachments,
+        designer_id: selectedDesigner,
       };
 
       const res = await api.post('/design-requests', payload);
@@ -96,13 +192,19 @@ export default function DesignRequestForm() {
     }
   };
 
+  // Insert Template Text into Points to Include
+  const handleInsertTemplate = () => {
+    if (currentConfig.templateText) {
+      setPointsToInclude(currentConfig.templateText);
+    }
+  };
+
   // CSV Template Downloader
   const downloadCSVTemplte = () => {
     const csvContent =
       'category,blog_category,title,keywords,points_to_include,priority,client_name\n' +
       '"Blog Request","Information","SEO Audit Infographic","SEO audit, backlinks, technical seo","1. Include pie chart of backlink sources\\n2. Brand color blue #1e40af","high","Apex Dental"\n' +
-      '"Blog Request","Lexical","Dictionary Term Visual","keyword density, search intent","1. Clear typography\\n2. Clean vector illustration","medium","Tech World"\n' +
-      '"On-Page","Case Studies","Growth Case Study Banner","conversion rate, organic traffic","1. Show 150% traffic growth curve\\n2. Modern dark theme","high","Finance Hub"';
+      '"On-Page","Hero Banner","Landing Page Hero Graphic","conversion rate, organic traffic","1. Show 150% traffic growth curve\\n2. Modern dark theme","high","Finance Hub"';
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -206,10 +308,14 @@ export default function DesignRequestForm() {
       setBulkError('No valid rows to submit. Please upload a CSV file.');
       return;
     }
+    if (!selectedDesigner) {
+      setBulkError('Please select an Editor before submitting bulk requests.');
+      return;
+    }
     setBulkError('');
     setBulkLoading(true);
     try {
-      const res = await api.post('/design-requests/bulk-csv', { items: csvPreview });
+      const res = await api.post('/design-requests/bulk-csv', { designer_id: selectedDesigner, items: csvPreview });
       if (res.data.success) {
         setBulkSuccess(`Successfully submitted ${res.data.count} design requests! Redirecting...`);
         setTimeout(() => {
@@ -226,136 +332,216 @@ export default function DesignRequestForm() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <Link to="/design-requests" className="text-slate-400 hover:text-slate-600 transition-colors text-sm font-medium">
-              ← Designer Requests
-            </Link>
+    <div className="w-full max-w-[1600px] mx-auto space-y-4">
+      {/* Header Banner - Compact & Sleek */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-4 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative z-10">
+          <div>
+            <div className="flex items-center gap-2">
+              <Link to="/design-requests" className="text-slate-400 hover:text-white transition-colors text-[11px] font-semibold flex items-center gap-1">
+                <span>←</span> Editor Requests Hub
+              </Link>
+            </div>
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight mt-0.5 flex items-center gap-2 text-white">
+              <span>✍️</span> Create Editor Request
+            </h1>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1 flex items-center gap-2">
-            <span>🎨</span> Create Designer Request
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Submit single or bulk keyword/blog graphic requirements for the design team.
-          </p>
-        </div>
 
-        {/* Mode Selector Tabs */}
-        <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('single')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'single' ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            ✏️ Single Request
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('bulk')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'bulk' ? 'bg-white text-brand-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            📊 Submit CSV (Bulk Excel)
-          </button>
+          {/* Mode Selector Tabs */}
+          <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('single')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'single'
+                  ? 'bg-brand-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>✏️</span> Single Request
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('bulk')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                activeTab === 'bulk'
+                  ? 'bg-brand-600 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>📊</span> Submit CSV (Bulk Excel)
+            </button>
+          </div>
         </div>
       </div>
 
       {/* SINGLE REQUEST FORM */}
       {activeTab === 'single' && (
-        <form onSubmit={handleSubmitSingle} className="space-y-6">
+        <form onSubmit={handleSubmitSingle} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between">
               <span>⚠️ {error}</span>
-              <button type="button" onClick={() => setError('')} className="text-red-400 hover:text-red-600 font-bold">
+              <button type="button" onClick={() => setError('')} className="text-rose-400 hover:text-rose-600 font-bold">
                 ✕
               </button>
             </div>
           )}
 
-          {/* Category Selection */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-              1. Select Category <span className="text-red-500">*</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {CATEGORIES.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setCategory(c.id)}
-                  className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                    category === c.id
-                      ? 'border-brand-500 bg-brand-50/40 text-brand-900 ring-2 ring-brand-500/20 shadow-xs'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 text-slate-700'
-                  }`}
-                >
-                  <span className="text-2xl mb-2">{c.icon}</span>
-                  <div>
-                    <p className="font-bold text-sm leading-tight">{c.label}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Blog Category Selection (Conditional) */}
-          {(category === 'Blog Request' || category === 'On-Page') && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 animate-fade-in">
-              <label className="block text-xs font-bold uppercase tracking-wider text-brand-600">
-                2. Select Blog Category <span className="text-red-500">*</span>
+          {/* 1. CATEGORY & DYNAMIC SUB-CATEGORY */}
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">1</span>
+                <span>Category</span>
+                <span className="text-rose-500">*</span>
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {BLOG_CATEGORIES.map((bc) => (
+              <span className="text-[11px] text-slate-400 font-medium">Select Category</span>
+            </div>
+
+            {/* Primary Category Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {CATEGORIES.map((c) => {
+                const isActive = category === c.id;
+                return (
                   <button
-                    key={bc.id}
+                    key={c.id}
                     type="button"
-                    onClick={() => setBlogCategory(bc.id)}
-                    className={`p-4 rounded-xl border text-left transition-all ${
-                      blogCategory === bc.id
-                        ? 'border-indigo-500 bg-indigo-50/50 text-indigo-950 ring-2 ring-indigo-500/20'
-                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                    onClick={() => handleCategoryChange(c.id)}
+                    className={`p-3 rounded-xl border text-left transition-all duration-150 flex items-start gap-3 relative cursor-pointer ${
+                      isActive
+                        ? 'border-brand-500 bg-brand-50/50 text-brand-950 ring-2 ring-brand-500/20 shadow-xs font-bold'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-800'
                     }`}
                   >
-                    <span className="font-bold text-sm block">{bc.label}</span>
-                    <span className="text-xs text-slate-500 block mt-1 leading-snug">{bc.desc}</span>
+                    <div className={`w-8 h-8 rounded-lg bg-gradient-to-tr ${c.gradient} flex items-center justify-center text-white text-sm shadow-xs shrink-0 mt-0.5`}>
+                      {c.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-xs text-slate-900 leading-tight truncate">{c.label}</p>
+                        {isActive && <span className="text-brand-600 font-bold text-xs shrink-0 ml-1">✓</span>}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug truncate">{c.desc}</p>
+                    </div>
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
 
-          {/* Form Details */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">3. Requirement Details</h3>
+            {/* Dynamic Sub-Category Section (Adapts to Selected Category!) */}
+            {currentConfig.subCategories && currentConfig.subCategories.length > 0 && (
+              <div className="pt-3 border-t border-slate-100 space-y-2.5 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                    <span>↳ {currentConfig.subCategoryLabel}:</span>
+                  </label>
+                  <span className="text-[11px] text-indigo-500 font-medium">Tailored for {category}</span>
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Optional Title */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Optional Title / Topic Name
-                </label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. 10 Best SEO Strategies for 2026 Header Banner"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {currentConfig.subCategories.map((sc) => {
+                    const isActive = blogCategory === sc.id;
+                    return (
+                      <button
+                        key={sc.id}
+                        type="button"
+                        onClick={() => setBlogCategory(sc.id)}
+                        className={`p-2.5 rounded-xl border text-left transition-all duration-150 flex items-center gap-2 cursor-pointer ${
+                          isActive
+                            ? 'border-indigo-500 bg-indigo-50/70 text-indigo-950 ring-2 ring-indigo-500/20 shadow-xs font-bold'
+                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 text-slate-800'
+                        }`}
+                      >
+                        <span className="text-base shrink-0">{sc.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs text-slate-900 block truncate">{sc.label}</span>
+                            {isActive && <span className="text-indigo-600 font-bold text-xs shrink-0 ml-1">●</span>}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
+          </div>
 
-              {/* Priority */}
+          {/* 2. KEYWORDS */}
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">2</span>
+                <span>Keywords</span>
+              </label>
+              <span className="text-slate-400 font-normal text-[11px]">Separate multiple keywords with commas</span>
+            </div>
+            <input
+              type="text"
+              value={keywords}
+              onChange={(e) => setKeywords(e.target.value)}
+              placeholder={currentConfig.keywordsPlaceholder}
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-mono bg-slate-50/30 focus:bg-white"
+            />
+          </div>
+
+          {/* 3. OPTIONAL TITLE */}
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                <span>Optional Title</span>
+              </label>
+              <span className="text-slate-400 font-normal text-[11px]">Topic / Title name for visual</span>
+            </div>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={currentConfig.titlePlaceholder}
+              className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-medium bg-slate-50/30 focus:bg-white"
+            />
+          </div>
+
+          {/* 4. POINTS INCLUDE SPECIFIC */}
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">4</span>
+                <span>Points Include Specific</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleInsertTemplate}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition-colors flex items-center gap-1"
+              >
+                <span>⚡</span> Insert {category} Guidelines
+              </button>
+            </div>
+            <textarea
+              rows={4}
+              value={pointsToInclude}
+              onChange={(e) => setPointsToInclude(e.target.value)}
+              placeholder={`Specify requirements for ${category}:\n${currentConfig.templateText}`}
+              className="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-sans bg-slate-50/30 focus:bg-white leading-normal"
+            />
+          </div>
+
+          {/* Priority, Client & Attachments Section */}
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Additional Details & Attachments (Optional)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Priority Level</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Priority Level</label>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-semibold bg-slate-50/30 focus:bg-white"
                 >
                   <option value="low">🟢 Low Priority</option>
                   <option value="medium">🟡 Medium Priority</option>
@@ -363,108 +549,136 @@ export default function DesignRequestForm() {
                   <option value="urgent">🔥 Urgent Priority</option>
                 </select>
               </div>
-            </div>
 
-            {/* Keywords */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Target Keywords <span className="text-slate-400 font-normal">(Comma separated)</span>
-              </label>
-              <input
-                type="text"
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="e.g. backlink audit, technical seo, google indexing"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
-              />
-            </div>
-
-            {/* Specific Points to Include */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Points to Include (Specific Instructions)
-              </label>
-              <textarea
-                rows={4}
-                value={pointsToInclude}
-                onChange={(e) => setPointsToInclude(e.target.value)}
-                placeholder="1. Include a comparison table visual for SEO vs PPC&#10;2. Use company brand palette (Dark Indigo #0f172a & Electric Blue #2563eb)&#10;3. Add clear graph icon showing keyword rank boost"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-sans"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              {/* Client / Project Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Client / Project Name (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Client / Project Name</label>
                 <input
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="e.g. Apex Dental Clinic"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-medium bg-slate-50/30 focus:bg-white"
                 />
               </div>
 
-              {/* Target Due Date */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Expected Due Date (Optional)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Target Due Date</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-medium bg-slate-50/30 focus:bg-white"
                 />
               </div>
             </div>
+
+            {/* Image upload */}
+            <div>
+              <label className="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-3 text-center block cursor-pointer transition-colors bg-slate-50/50 hover:bg-brand-50/10">
+                <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
+                <div className="flex items-center justify-center gap-2 text-slate-700">
+                  <span className="text-lg">📸</span>
+                  <span className="text-xs font-bold">Upload Reference Mockups / Screenshots</span>
+                  <span className="text-[11px] text-slate-400 font-normal">(PNG, JPG up to 5MB)</span>
+                </div>
+              </label>
+
+              {attachments.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-2">
+                  {attachments.map((att, i) => (
+                    <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video flex items-center justify-center shadow-xs">
+                      {att.type === 'image' ? (
+                        <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[11px] text-slate-600 p-1 truncate">{att.name}</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(i)}
+                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold opacity-90 hover:opacity-100"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Reference Screenshots / Attachments */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">4. Reference Images / Inspiration (Optional)</h3>
-
-            <label className="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-2xl p-6 text-center block cursor-pointer transition-colors bg-slate-50/50">
-              <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
-              <div className="space-y-1">
-                <span className="text-3xl">📸</span>
-                <p className="text-sm font-semibold text-slate-700">Click to upload reference mockups or screenshots</p>
-                <p className="text-xs text-slate-400">PNG, JPG up to 5MB</p>
+          {/* 5. SELECT EDITOR / ASSIGNEE (MANDATORY) */}
+          <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-slate-50 p-4 rounded-2xl border border-indigo-200 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">5</span>
+                <label className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+                  Select Editor / Assignee <span className="text-rose-500">*</span>
+                </label>
               </div>
-            </label>
+              <span className="text-[11px] font-bold text-indigo-700 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200">
+                {designers.length} Editor{designers.length !== 1 ? 's' : ''} Available
+              </span>
+            </div>
 
-            {attachments.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {attachments.map((att, i) => (
-                  <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-video flex items-center justify-center">
-                    {att.type === 'image' ? (
-                      <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xs text-slate-600 p-2 truncate">{att.name}</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(i)}
-                      className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-90 hover:opacity-100"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
+            <p className="text-[11px] text-indigo-700 font-medium">
+              Select which editor will work on this request. Submission is blocked until an editor is selected.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+              {designers.map((d) => {
+                const isSel = String(d.id) === String(selectedDesigner);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => { setSelectedDesigner(String(d.id)); setError(''); }}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                      isSel
+                        ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-sm font-bold'
+                        : 'border-indigo-100 hover:border-indigo-300 bg-white/80 hover:bg-white text-slate-800'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                      ✍️
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-xs text-slate-900 truncate">{d.name}</p>
+                        {isSel && <span className="text-indigo-600 font-bold text-xs shrink-0">✓</span>}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">@{d.username} • [{d.role?.toUpperCase() || 'EDITOR'}]</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {!selectedDesigner && (
+              <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
+                <span>⚠️</span> You MUST select an editor before submitting this request.
+              </p>
             )}
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Link to="/design-requests" className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50">
+            <Link to="/design-requests" className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50">
               Cancel
             </Link>
             <button
               type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-900/20 disabled:opacity-50 transition-all flex items-center gap-2"
+              disabled={loading || !selectedDesigner}
+              className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 ${
+                selectedDesigner
+                  ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-brand-900/20'
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
+              }`}
             >
-              {loading ? 'Submitting...' : '🚀 Submit Request'}
+              {loading
+                ? 'Submitting...'
+                : selectedDesignerObj
+                ? `🚀 Submit to Editor (${selectedDesignerObj.name})`
+                : '⚠️ Select an Editor First'}
             </button>
           </div>
         </form>
@@ -472,31 +686,31 @@ export default function DesignRequestForm() {
 
       {/* BULK CSV UPLOAD FORM */}
       {activeTab === 'bulk' && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {bulkError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between">
+            <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between">
               <span>⚠️ {bulkError}</span>
-              <button type="button" onClick={() => setBulkError('')} className="text-red-400 hover:text-red-600 font-bold">
+              <button type="button" onClick={() => setBulkError('')} className="text-rose-400 hover:text-rose-600 font-bold">
                 ✕
               </button>
             </div>
           )}
 
           {bulkSuccess && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2">
               <span>✅</span>
               <span>{bulkSuccess}</span>
             </div>
           )}
 
           {/* Instructions & Template Download Card */}
-          <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-4 rounded-2xl shadow-md space-y-3 border border-slate-800">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div>
-                <h3 className="font-bold text-base flex items-center gap-2">
+                <h3 className="font-bold text-sm flex items-center gap-2 text-white">
                   <span>📊</span> Excel / CSV Bulk Submission Guide
                 </h3>
-                <p className="text-xs text-slate-300 mt-1 max-w-2xl">
+                <p className="text-xs text-slate-300 mt-0.5 leading-normal">
                   Upload an Excel (.csv) file containing multiple blog graphic & keyword requests. Each row in your CSV file will automatically create a designer request ticket.
                 </p>
               </div>
@@ -504,50 +718,84 @@ export default function DesignRequestForm() {
               <button
                 type="button"
                 onClick={downloadCSVTemplte}
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shrink-0 flex items-center gap-2"
+                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
               >
-                📥 Download Sample CSV Template
+                📥 Download CSV Template
               </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-2 border-t border-white/10 text-slate-300">
-              <div><strong className="text-white">category:</strong> Blog Request, On-Page</div>
-              <div><strong className="text-white">blog_category:</strong> Information, Lexical, Case Studies</div>
-              <div><strong className="text-white">title:</strong> (Optional Topic Title)</div>
-              <div><strong className="text-white">keywords:</strong> (Comma separated)</div>
             </div>
           </div>
 
           {/* File Picker */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <label className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/20 rounded-2xl p-8 text-center block cursor-pointer transition-colors">
+          <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+            <label className="border-2 border-dashed border-indigo-200 hover:border-indigo-500 bg-indigo-50/20 rounded-xl p-6 text-center block cursor-pointer transition-colors">
               <input type="file" accept=".csv,text/csv,application/vnd.ms-excel" onChange={handleCSVFileChange} className="hidden" />
-              <div className="space-y-2">
-                <span className="text-4xl">📄</span>
-                <p className="text-sm font-bold text-slate-800">
-                  {csvFile ? `Selected: ${csvFile.name}` : 'Click or Drag CSV File Here'}
+              <div className="space-y-1">
+                <span className="text-3xl block">📄</span>
+                <p className="text-xs font-bold text-slate-800">
+                  {csvFile ? `Selected File: ${csvFile.name}` : 'Click or Drag CSV File Here'}
                 </p>
-                <p className="text-xs text-slate-500">Supports standard CSV / Excel exported CSV files</p>
+                <p className="text-[11px] text-slate-500">Supports standard CSV or Excel exported CSV files</p>
               </div>
             </label>
           </div>
 
+          {/* SELECT EDITOR FOR BULK (MANDATORY) */}
+          <div className="bg-gradient-to-r from-indigo-50/90 via-purple-50/50 to-slate-50 p-4 rounded-2xl border border-indigo-200 shadow-xs space-y-3">
+            <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-indigo-950 flex items-center gap-2">
+                <span>✍️</span> Select Editor for Bulk Requests <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[11px] font-bold text-indigo-700 bg-white px-2.5 py-0.5 rounded-lg border border-indigo-200">
+                {designers.length} Available
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {designers.map((d) => {
+                const isSel = String(d.id) === String(selectedDesigner);
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => { setSelectedDesigner(String(d.id)); setBulkError(''); }}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                      isSel
+                        ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-sm font-bold'
+                        : 'border-indigo-100 hover:border-indigo-300 bg-white/80 hover:bg-white text-slate-800'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                      🎨
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-xs text-slate-900 truncate">{d.name}</p>
+                        {isSel && <span className="text-indigo-600 font-bold text-xs shrink-0">✓</span>}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">@{d.username}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* CSV Preview Table */}
           {csvPreview.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+            <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2">
                   <span>👀</span> CSV File Preview ({csvPreview.length} items ready to submit)
                 </h3>
-                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                  Valid CSV Format
+                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  Valid Format
                 </span>
               </div>
 
               <div className="overflow-x-auto border border-slate-200 rounded-xl">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-slate-100 text-slate-600 border-b border-slate-200 font-bold uppercase tracking-wider">
+                    <tr className="bg-slate-900 text-white border-b border-slate-800 font-bold uppercase tracking-wider text-[10px]">
                       <th className="p-3">#</th>
                       <th className="p-3">Category</th>
                       <th className="p-3">Blog Sub-Category</th>
@@ -561,20 +809,20 @@ export default function DesignRequestForm() {
                     {csvPreview.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-3 font-semibold text-slate-400">{idx + 1}</td>
-                        <td className="p-3 font-bold text-slate-800">{row.category}</td>
+                        <td className="p-3 font-bold text-slate-900">{row.category}</td>
                         <td className="p-3">
-                          <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold border border-indigo-100">
+                          <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold border border-indigo-200 text-[11px]">
                             {row.blog_category || '—'}
                           </span>
                         </td>
-                        <td className="p-3 font-medium text-slate-700 max-w-[150px] truncate">{row.title || '—'}</td>
+                        <td className="p-3 font-medium text-slate-800 max-w-[180px] truncate">{row.title || '—'}</td>
                         <td className="p-3 font-mono text-slate-600 max-w-[180px] truncate">{row.keywords || '—'}</td>
                         <td className="p-3 text-slate-600 max-w-[220px] truncate">{row.points_to_include || '—'}</td>
                         <td className="p-3 text-right">
                           <button
                             type="button"
                             onClick={() => removeCSVRow(idx)}
-                            className="text-red-500 hover:text-red-700 font-bold p-1 rounded hover:bg-red-50"
+                            className="text-rose-500 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50"
                             title="Remove row"
                           >
                             ✕
@@ -590,10 +838,18 @@ export default function DesignRequestForm() {
                 <button
                   type="button"
                   onClick={handleSubmitBulk}
-                  disabled={bulkLoading}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md shadow-emerald-900/20 disabled:opacity-50 transition-all flex items-center gap-2"
+                  disabled={bulkLoading || !selectedDesigner}
+                  className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 ${
+                    selectedDesigner
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
+                  }`}
                 >
-                  {bulkLoading ? 'Submitting Batch...' : `🚀 Submit All ${csvPreview.length} Requests`}
+                  {bulkLoading
+                    ? 'Submitting Batch...'
+                    : selectedDesignerObj
+                    ? `🚀 Submit All ${csvPreview.length} Requests to ${selectedDesignerObj.name}`
+                    : '⚠️ Select an Editor First'}
                 </button>
               </div>
             </div>

@@ -28,6 +28,12 @@ const ROLE_THEMES = {
     dot: 'bg-amber-500',
     tag: 'Developer',
   },
+  designer: {
+    badge: 'bg-pink-100 text-pink-700 border-pink-200',
+    avatar: 'from-pink-500 to-rose-600 text-white',
+    dot: 'bg-pink-500',
+    tag: 'Editor',
+  },
   employee: {
     badge: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     avatar: 'from-emerald-500 to-teal-600 text-white',
@@ -195,10 +201,11 @@ export default function Chat() {
   const filtered = contacts.filter((c) => {
     if (search && !`${c.name} ${c.username}`.toLowerCase().includes(search.toLowerCase())) return false;
     if (roleTab !== 'all') {
+      if (roleTab === 'developer' && c.role !== 'developer') return false;
+      if (roleTab === 'designer' && c.role !== 'designer') return false;
       if (roleTab === 'team_lead' && c.role !== 'team_lead') return false;
       if (roleTab === 'employee' && c.role !== 'employee') return false;
-      if (roleTab === 'developer' && c.role !== 'developer') return false;
-      if (roleTab === 'admin' && c.role !== 'admin') return false;
+      if (roleTab === 'admin' && !['admin', 'super_admin'].includes(c.role)) return false;
     }
     return true;
   });
@@ -276,30 +283,30 @@ export default function Chat() {
               )}
             </div>
 
-            {/* Filter Tabs */}
-            {isAdmin && (
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
-                {[
-                  ['all', 'All'],
-                  ['team_lead', 'Team Leads'],
-                  ['employee', 'Employees'],
-                  ['developer', 'Developers'],
-                  ['admin', 'Admins'],
-                ].map(([k, l]) => (
-                  <button
-                    key={k}
-                    onClick={() => setRoleTab(k)}
-                    className={`px-3 py-1.5 rounded-xl font-bold tracking-tight whitespace-nowrap transition-all ${
-                      roleTab === k
-                        ? 'bg-slate-900 text-white shadow-sm scale-102'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
-                    }`}
-                  >
-                    {l}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Filter Tabs for All Roles */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-[11px]">
+              {[
+                ['all', 'All'],
+                ['developer', 'Developers'],
+                ['designer', 'Editors'],
+                ['team_lead', 'Team Leads'],
+                ['employee', 'Employees'],
+                ['admin', 'Admins'],
+              ].map(([k, l]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setRoleTab(k)}
+                  className={`px-3 py-1 rounded-xl font-bold tracking-tight whitespace-nowrap transition-all cursor-pointer ${
+                    roleTab === k
+                      ? 'bg-slate-900 text-white shadow-xs scale-102'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Contact List */}

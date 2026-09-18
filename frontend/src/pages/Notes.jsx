@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { roleLabel } from '../constants';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const TITLES = {
   super_admin: 'All Workspace Notes',
   admin: 'Notes from Team Leads',
   team_lead: 'Team & Personal Notes',
   employee: 'My Notes & SEO Logs',
+  supervisor: 'Supervisor Notes Center',
 };
 
 const NOTE_STATUS = {
@@ -36,6 +38,7 @@ export default function Notes() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState({ range: 'all', from: '', to: '' });
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [pinnedIds, setPinnedIds] = useState([]);
   const [toast, setToast] = useState('');
@@ -130,6 +133,16 @@ export default function Notes() {
           return false;
         }
 
+        // Date range filter
+        if (dateFilter.from && n.created_at) {
+          const dateStr = new Date(n.created_at).toISOString().slice(0, 10);
+          if (dateStr < dateFilter.from) return false;
+        }
+        if (dateFilter.to && n.created_at) {
+          const dateStr = new Date(n.created_at).toISOString().slice(0, 10);
+          if (dateStr > dateFilter.to) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -139,7 +152,7 @@ export default function Notes() {
         if (!aPinned && bPinned) return 1;
         return new Date(b.updated_at) - new Date(a.updated_at);
       });
-  }, [notes, search, activeCategory, statusFilter, pinnedIds]);
+  }, [notes, search, activeCategory, statusFilter, dateFilter, pinnedIds]);
 
   // Statistics calculation
   const stats = useMemo(() => {
@@ -165,7 +178,7 @@ export default function Notes() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-50 text-brand-700 text-xs font-bold uppercase tracking-wider mb-1.5">
             <span>📝</span> Smart Workspace Notebook
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">{TITLES[user.role]}</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">{TITLES[user.role] || 'Workspace Notes'}</h1>
           <p className="text-xs text-slate-500 mt-1">
             Create checklists, report blockers with screenshots, and capture SEO strategy notes.
           </p>
@@ -231,7 +244,7 @@ export default function Notes() {
               placeholder="Search notes, keywords, authors..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input pl-9 text-xs"
+              className="input pl-9 text-xs font-semibold"
             />
             {search && (
               <button
@@ -243,8 +256,10 @@ export default function Notes() {
             )}
           </div>
 
-          {/* Right Controls: Status filter & View Switcher */}
-          <div className="flex items-center justify-between w-full md:w-auto gap-2">
+          {/* Right Controls: Date Range, Status filter & View Switcher */}
+          <div className="flex flex-wrap items-center justify-between w-full md:w-auto gap-3">
+            <DateRangeFilter onChange={setDateFilter} />
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}

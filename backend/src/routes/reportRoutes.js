@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // export (admin/super_admin) — MUST be before '/:id'
-router.get('/export/csv', authorize('admin', 'super_admin'), ctrl.exportReports);
+router.get('/export/csv', authorize('admin', 'super_admin', 'supervisor'), ctrl.exportReports);
 
 // list + get (role scoped inside controller)
 router.get('/', ctrl.listReports);

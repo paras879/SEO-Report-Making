@@ -5,6 +5,9 @@ export const ROLE_LABELS = {
   team_lead: 'Team Lead',
   employee: 'Employee',
   developer: 'Developer',
+  designer: 'Editor',
+  editor: 'Editor',
+  supervisor: 'Supervisor',
 };
 
 export const roleLabel = (r) => ROLE_LABELS[r] || r;
@@ -15,6 +18,8 @@ export const ROLE_OPTIONS = [
   { value: 'team_lead', label: 'Team Lead' },
   { value: 'employee', label: 'Employee' },
   { value: 'developer', label: 'Developer' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'supervisor', label: 'Supervisor' },
 ];
 
 export const WORK_STATUS_OPTIONS = [

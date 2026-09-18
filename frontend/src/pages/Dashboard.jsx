@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { DEV_STATUS_MAP, devCategoryLabel } from '../constants';
 
 function StatCard({ label, value, color = 'brand', icon = '📊', subtitle, to, badge }) {
   const themes = {
@@ -211,6 +212,12 @@ export default function Dashboard() {
   const [customTo, setCustomTo] = useState('');
   const [loadingCharts, setLoadingCharts] = useState(false);
 
+  // Quick Developer Ticket Status Update Modal state
+  const [devModalTicket, setDevModalTicket] = useState(null);
+  const [devModalAction, setDevModalAction] = useState(''); // 'qa' or 'resolve'
+  const [devModalMsg, setDevModalMsg] = useState('');
+  const [devModalSubmitting, setDevModalSubmitting] = useState(false);
+
   // Formatted date string
   const todayFormatted = useMemo(() => {
     return new Date().toLocaleDateString('en-US', {
@@ -235,13 +242,17 @@ export default function Dashboard() {
   }, [dateRange, customFrom, customTo]);
 
   // Load initial Stats & Employee details
-  useEffect(() => {
+  const loadStats = () => {
     api.get('/dashboard/stats')
       .then((r) => {
         setS(r.data.summary || {});
         if (r.data.recent_reports) setRecentReports(r.data.recent_reports);
       })
       .catch((e) => setErr(e.response?.data?.message || 'Failed to load dashboard metrics'));
+  };
+
+  useEffect(() => {
+    loadStats();
 
     if (user.role === 'employee') {
       api.get('/reports', { params: { limit: 14 } }).then((r) => {
@@ -255,6 +266,46 @@ export default function Dashboard() {
       }).catch(() => {});
     }
   }, [user.role]);
+
+  const openDevModal = (ticket, action) => {
+    setDevModalTicket(ticket);
+    setDevModalAction(action);
+    setDevModalMsg('');
+  };
+
+  const closeDevModal = () => {
+    setDevModalTicket(null);
+    setDevModalAction('');
+    setDevModalMsg('');
+  };
+
+  const handleDevQuickStatus = async (ticketId, action, messageText = '') => {
+    try {
+      const endpoint = user.role === 'designer' ? '/design-requests' : '/dev-requests';
+      if (action === 'start') {
+        await api.post(`${endpoint}/${ticketId}/start-progress`);
+      } else if (action === 'qa') {
+        await api.post(`${endpoint}/${ticketId}/submit-qa`, { message: messageText || 'Submitted work for QA review.' });
+      } else if (action === 'resolve') {
+        await api.post(`${endpoint}/${ticketId}/resolve`, { message: messageText || 'Completed task.' });
+      }
+      closeDevModal();
+      loadStats();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update request status');
+    }
+  };
+
+  const handleDevModalSubmit = async (e) => {
+    e.preventDefault();
+    if (!devModalMsg.trim()) {
+      alert('Please enter a brief note for the employee');
+      return;
+    }
+    setDevModalSubmitting(true);
+    await handleDevQuickStatus(devModalTicket.id, devModalAction, devModalMsg.trim());
+    setDevModalSubmitting(false);
+  };
 
   // Load Charts with active date filter
   const loadCharts = () => {
@@ -295,7 +346,15 @@ export default function Dashboard() {
           <div className="max-w-xl space-y-2">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-brand-300 text-[11px] font-extrabold uppercase tracking-wider backdrop-blur-sm border border-white/10">
-                {user.role === 'employee' ? '🚀 SEO Specialist Workspace' : '✨ Enterprise Workspace'}
+                {user.role === 'employee'
+                  ? '🚀 SEO Specialist Workspace'
+                  : user.role === 'developer'
+                  ? '💻 Developer Engineering Hub'
+                  : user.role === 'designer' || user.role === 'editor'
+                  ? '✍️ Editor Visuals Hub'
+                  : user.role === 'supervisor'
+                  ? '👁️ Supervisor Command Workspace'
+                  : '✨ Enterprise Workspace'}
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
@@ -316,13 +375,19 @@ export default function Dashboard() {
             <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
               {user.role === 'employee'
                 ? 'Create, manage, and submit your daily SEO campaign logs, request developer bug fixes, and collaborate with your team lead.'
+                : user.role === 'developer'
+                ? 'Resolve technical requests, site speed, SSL, server bugs, and custom feature tasks assigned to you by employees & team leads.'
+                : user.role === 'designer' || user.role === 'editor'
+                ? 'Fulfill visual graphic requests, blog banners, infographics, video edits, and keyword assets assigned to you.'
+                : user.role === 'supervisor'
+                ? 'Monitor live team workload, inspect shared PDF/attachment files, review SEO campaign reports, track developer bug fixes and editor graphic tasks.'
                 : 'Track real-time SEO operations, client report submissions, team squads, and developer requests in one hub.'}
             </p>
 
             <div className="pt-1 flex items-center gap-3 text-slate-400 text-xs font-semibold flex-wrap">
               <span>📅 {todayFormatted}</span>
               <span>•</span>
-              <span className="capitalize text-brand-300 font-bold">Role: {user.role.replace('_', ' ')}</span>
+              <span className="capitalize text-brand-300 font-bold">Role: {user.role === 'designer' ? 'Editor' : user.role.replace('_', ' ')}</span>
               {s.team_name && (
                 <>
                   <span>•</span>
@@ -340,6 +405,39 @@ export default function Dashboard() {
 
           {/* Quick Action Buttons in Hero */}
           <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {user.role === 'supervisor' && (
+              <>
+                <Link
+                  to="/supervisor"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 text-xs py-2.5 px-4 rounded-xl font-bold inline-flex items-center gap-1.5 transition-all"
+                >
+                  <span>👁️</span>
+                  <span>Supervisor Hub</span>
+                </Link>
+                <Link
+                  to="/reports"
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
+                >
+                  <span>📄</span>
+                  <span>All Reports</span>
+                </Link>
+                <Link
+                  to="/dev-requests"
+                  className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                >
+                  <span>🛠️</span>
+                  <span>Dev Tickets</span>
+                </Link>
+                <Link
+                  to="/design-requests"
+                  className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                >
+                  <span>🎨</span>
+                  <span>Editor Tasks</span>
+                </Link>
+              </>
+            )}
+
             {user.role === 'employee' && (
               <>
                 <Link
@@ -359,10 +457,69 @@ export default function Dashboard() {
               </>
             )}
 
+            {user.role === 'developer' && (
+              <>
+                <Link
+                  to="/dev-requests"
+                  className="btn-primary text-xs py-2.5 px-4 shadow-lg shadow-brand-500/25 font-bold inline-flex items-center gap-1.5"
+                >
+                  <span>💻</span>
+                  <span>Assigned Dev Tickets</span>
+                </Link>
+                <Link
+                  to="/dev-requests?status=in_progress"
+                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
+                >
+                  <span>⚙️</span>
+                  <span>In Progress Tasks</span>
+                </Link>
+                <Link
+                  to="/chat"
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
+                >
+                  <span>💬</span>
+                  <span>Team Chat</span>
+                </Link>
+              </>
+            )}
+
+            {(user.role === 'designer' || user.role === 'editor') && (
+              <>
+                <Link
+                  to="/design-requests"
+                  className="btn-primary text-xs py-2.5 px-4 shadow-lg shadow-brand-500/25 font-bold inline-flex items-center gap-1.5"
+                >
+                  <span>✍️</span>
+                  <span>Assigned Editor Tasks</span>
+                </Link>
+                <Link
+                  to="/design-requests?status=in_progress"
+                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
+                >
+                  <span>⚙️</span>
+                  <span>In Progress Tasks</span>
+                </Link>
+                <Link
+                  to="/chat"
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
+                >
+                  <span>💬</span>
+                  <span>Team Chat</span>
+                </Link>
+              </>
+            )}
+
             {['super_admin', 'admin'].includes(user.role) && (
               <>
                 <Link
-                  to="/forwarded-reports"
+                  to="/supervisor"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg text-xs py-2.5 px-4 rounded-xl font-bold inline-flex items-center gap-1.5 transition-all"
+                >
+                  <span>👁️</span>
+                  <span>Supervisor Hub</span>
+                </Link>
+                <Link
+                  to="/reports"
                   className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
                 >
                   <span>📬</span>
@@ -380,21 +537,13 @@ export default function Dashboard() {
 
             {user.role === 'team_lead' && (
               <Link
-                to="/forwarded-reports"
+                to="/reports"
                 className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-4 py-2.5 rounded-xl text-xs font-bold transition-all backdrop-blur-sm inline-flex items-center gap-1.5"
               >
                 <span>📑</span>
                 <span>Review Team Reports</span>
               </Link>
             )}
-
-            <Link
-              to="/dev-requests"
-              className="bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5"
-            >
-              <span>🛠️</span>
-              <span>Dev Tickets</span>
-            </Link>
           </div>
         </div>
       </div>
@@ -465,6 +614,19 @@ export default function Dashboard() {
 
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {user.role === 'supervisor' && (
+          <>
+            <StatCard label="Open Dev Tickets" value={s.open_dev_tickets} icon="🛠️" color="rose" subtitle="Active technical tasks" to="/dev-requests" badge="Dev Ops" />
+            <StatCard label="Resolved Dev Fixes" value={s.resolved_dev_tickets} icon="🎉" color="emerald" subtitle="Completed technical fixes" to="/dev-requests" />
+            <StatCard label="Open Editor Tasks" value={s.open_design_tickets} icon="🎨" color="amber" subtitle="Active graphic visual tasks" to="/design-requests" badge="Editor Ops" />
+            <StatCard label="Completed Editor Visuals" value={s.resolved_design_tickets} icon="✅" color="emerald" subtitle="Finished graphics & banners" to="/design-requests" />
+            <StatCard label="Total SEO Reports" value={s.total_reports} icon="📄" color="brand" subtitle="All campaign submissions" to="/reports" />
+            <StatCard label="Pending TL Review" value={s.pending_tl} icon="⏳" color="amber" subtitle="Awaiting team lead review" to="/reports" />
+            <StatCard label="Approved Reports" value={s.approved} icon="✅" color="indigo" subtitle="Verified and active" to="/reports" />
+            <StatCard label="Supervisor Command Hub" value="Live" icon="👁️" color="indigo" subtitle="File hub & oversight" to="/supervisor" badge="Command Hub" />
+          </>
+        )}
+
         {user.role === 'super_admin' && (
           <>
             <StatCard label="Total Reports" value={s.total_reports} icon="📄" color="brand" subtitle="All-time created" to="/reports" />
@@ -511,9 +673,18 @@ export default function Dashboard() {
         {user.role === 'developer' && (
           <>
             <StatCard label="Assigned to Me" value={s.total_assigned} icon="💻" color="brand" subtitle="Total dev tickets" to="/dev-requests" />
-            <StatCard label="In Progress" value={s.in_progress} icon="⚙️" color="amber" subtitle="Currently working on" to="/dev-requests" badge="In Work" />
-            <StatCard label="Under QA / Testing" value={s.under_qa} icon="🔍" color="indigo" subtitle="Submitted for review" to="/dev-requests" />
-            <StatCard label="Resolved Tickets" value={s.resolved} icon="✅" color="emerald" subtitle="Fixed and verified" to="/dev-requests" />
+            <StatCard label="In Progress" value={s.in_progress} icon="⚙️" color="amber" subtitle="Active working tasks" to="/dev-requests" badge="In Work" />
+            <StatCard label="Under QA / Testing" value={s.under_qa} icon="🔍" color="indigo" subtitle="Submitted for review" to="/dev-requests" badge="Review" />
+            <StatCard label="Resolved Fixes" value={s.resolved} icon="✅" color="emerald" subtitle="Fixed & closed" to="/dev-requests" badge="Fixed" />
+          </>
+        )}
+
+        {user.role === 'designer' && (
+          <>
+            <StatCard label="Assigned to Me" value={s.total_assigned} icon="✍️" color="brand" subtitle="Total editor tasks" to="/design-requests" />
+            <StatCard label="In Progress Visuals" value={s.in_progress} icon="🎨" color="amber" subtitle="Active graphic tasks" to="/design-requests" badge="In Work" />
+            <StatCard label="Under Review / QA" value={s.under_qa} icon="🔍" color="indigo" subtitle="Submitted for review" to="/design-requests" badge="Review" />
+            <StatCard label="Completed Visuals" value={s.resolved} icon="✅" color="emerald" subtitle="Approved & done" to="/design-requests" badge="Completed" />
           </>
         )}
       </div>
@@ -589,6 +760,373 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* DEVELOPER WORKLOAD & ASSIGNED DEV TICKETS FEED */}
+      {user.role === 'developer' && (
+        <div className="card p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 border border-slate-800 rounded-3xl shadow-xl text-white space-y-6 relative overflow-hidden">
+          {/* Subtle Cyber Glow background accents */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-300 text-[10px] font-extrabold uppercase tracking-wider border border-brand-500/30">
+                  ⚡ Engineering Workload
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                  {recentReports.length} Active Tickets
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>💻</span>
+                <span>My Active Developer Requests</span>
+              </h2>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Technical tickets assigned to you. Update status directly or start work.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={loadStats}
+                className="px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>🔄</span> Refresh Feed
+              </button>
+              <Link
+                to="/dev-requests"
+                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5"
+              >
+                <span>All Tickets ➔</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Ticket Grid */}
+          {recentReports.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-slate-800 rounded-2xl bg-slate-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl mx-auto mb-3 text-emerald-400">
+                🎉
+              </div>
+              <h3 className="text-sm font-black text-slate-200">All Caught Up! No Active Pending Tickets</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                You have no active developer requests waiting for work or QA. Great job keeping the queue clear!
+              </p>
+              <Link
+                to="/dev-requests"
+                className="mt-4 inline-block px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all"
+              >
+                Browse Ticket History ➔
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+              {recentReports.map((t) => {
+                const statusInfo = DEV_STATUS_MAP[t.status] || { label: t.status, cls: 'bg-slate-800 text-slate-300 border-slate-700' };
+                const priorityStyles = {
+                  high: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                  medium: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                  low: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                };
+                return (
+                  <div
+                    key={t.id}
+                    className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-brand-500/50 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group backdrop-blur-sm"
+                  >
+                    <div className="space-y-3">
+                      {/* Category & Priority Row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1.5">
+                          {devCategoryLabel(t.category)}
+                        </span>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${priorityStyles[t.priority] || priorityStyles.medium}`}>
+                          {t.priority || 'medium'}
+                        </span>
+                      </div>
+
+                      {/* Ticket Title */}
+                      <div>
+                        <Link
+                          to={`/dev-requests/${t.id}`}
+                          className="font-extrabold text-sm text-slate-100 hover:text-brand-300 transition-colors line-clamp-2 leading-snug"
+                        >
+                          {t.title}
+                        </Link>
+                        {t.client_name && (
+                          <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                            <span>🏢 Client:</span>
+                            <span className="text-slate-300 font-bold">{t.client_name}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Raised By Employee & Date */}
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <span>👤</span>
+                          <span className="text-slate-300 font-semibold">{t.employee_name || 'Staff Member'}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status Pill & Quick Action Bar */}
+                    <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-500 font-medium">Status:</span>
+                        <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${statusInfo.cls}`}>
+                          {statusInfo.label}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {['forwarded', 'reopened'].includes(t.status) && (
+                          <button
+                            onClick={() => handleDevQuickStatus(t.id, 'start')}
+                            className="col-span-2 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>⚙️ Start Work</span>
+                          </button>
+                        )}
+
+                        {t.status === 'in_progress' && (
+                          <>
+                            <button
+                              onClick={() => openDevModal(t, 'qa')}
+                              className="py-2 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span>🔍 Submit QA</span>
+                            </button>
+                            <button
+                              onClick={() => openDevModal(t, 'resolve')}
+                              className="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span>✅ Resolve</span>
+                            </button>
+                          </>
+                        )}
+
+                        {t.status === 'under_qa' && (
+                          <button
+                            onClick={() => openDevModal(t, 'resolve')}
+                            className="col-span-2 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✅ Mark as Resolved</span>
+                          </button>
+                        )}
+
+                        {/* Always show Details & Chat */}
+                        <Link
+                          to={`/dev-requests/${t.id}`}
+                          className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] text-center transition-all border border-slate-700"
+                        >
+                          Details ➔
+                        </Link>
+                        <Link
+                          to="/chat"
+                          className="py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-brand-300 font-bold text-[11px] text-center transition-all border border-slate-700 flex items-center justify-center gap-1"
+                        >
+                          <span>💬 Chat</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* EDITOR WORKLOAD & ASSIGNED DESIGN TICKETS FEED */}
+      {user.role === 'designer' && (
+        <div className="card p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 border border-slate-800 rounded-3xl shadow-xl text-white space-y-6 relative overflow-hidden">
+          {/* Subtle Cyber Glow background accents */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-extrabold uppercase tracking-wider border border-purple-500/30">
+                  ✍️ Editor Workload
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                  {recentReports.length} Active Tasks
+                </span>
+              </div>
+              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                <span>🎨</span>
+                <span>My Active Editor Requests & Visuals</span>
+              </h2>
+              <p className="text-slate-400 text-xs mt-0.5">
+                Graphic, banner, and video tasks assigned to you. Update status directly or start work.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={loadStats}
+                className="px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>🔄</span> Refresh Feed
+              </button>
+              <Link
+                to="/design-requests"
+                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5"
+              >
+                <span>All Editor Tasks ➔</span>
+              </Link>
+            </div>
+          </div>
+
+          {/* Ticket Grid */}
+          {recentReports.length === 0 ? (
+            <div className="text-center py-12 border border-dashed border-slate-800 rounded-2xl bg-slate-900/50">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl mx-auto mb-3 text-emerald-400">
+                🎉
+              </div>
+              <h3 className="text-sm font-black text-slate-200">All Caught Up! No Active Pending Editor Tasks</h3>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                You have no active graphic visual requests waiting for work or review. Great job keeping the queue clear!
+              </p>
+              <Link
+                to="/design-requests"
+                className="mt-4 inline-block px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition-all"
+              >
+                Browse Editor Task History ➔
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-10">
+              {recentReports.map((t) => {
+                const priorityStyles = {
+                  urgent: 'bg-red-500/20 text-red-300 border-red-500/30 font-black',
+                  high: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+                  medium: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+                  low: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+                };
+                return (
+                  <div
+                    key={t.id}
+                    className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-purple-500/50 hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group backdrop-blur-sm"
+                  >
+                    <div className="space-y-3">
+                      {/* Category & Priority Row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-extrabold px-2.5 py-1 rounded-lg bg-slate-800 text-purple-300 border border-slate-700 flex items-center gap-1.5">
+                          ✍️ {t.category || 'Graphic Request'}
+                        </span>
+                        <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${priorityStyles[t.priority] || priorityStyles.medium}`}>
+                          {t.priority || 'medium'}
+                        </span>
+                      </div>
+
+                      {/* Ticket Title */}
+                      <div>
+                        <Link
+                          to={`/design-requests/${t.id}`}
+                          className="font-extrabold text-sm text-slate-100 hover:text-brand-300 transition-colors line-clamp-2 leading-snug"
+                        >
+                          {t.title || `${t.category} Visual`}
+                        </Link>
+                        {t.client_name && (
+                          <p className="text-[11px] font-medium text-slate-400 mt-1 flex items-center gap-1">
+                            <span>🏢 Client:</span>
+                            <span className="text-slate-300 font-bold">{t.client_name}</span>
+                          </p>
+                        )}
+                        {t.blog_category && (
+                          <p className="text-[10px] font-semibold text-indigo-400 mt-1">
+                            Sub-Category: {t.blog_category}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Raised By Employee & Date */}
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <span>👤</span>
+                          <span className="text-slate-300 font-semibold">{t.employee_name || 'Staff Member'}</span>
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Status Pill & Quick Action Bar */}
+                    <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[11px] text-slate-500 font-medium">Status:</span>
+                        <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 uppercase">
+                          {t.status}
+                        </span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {['forwarded', 'reopened'].includes(t.status) && (
+                          <button
+                            onClick={() => handleDevQuickStatus(t.id, 'start')}
+                            className="col-span-2 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>🎨 Start Work</span>
+                          </button>
+                        )}
+
+                        {t.status === 'in_progress' && (
+                          <>
+                            <button
+                              onClick={() => openDevModal(t, 'qa')}
+                              className="py-2 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span>🔍 Submit QA</span>
+                            </button>
+                            <button
+                              onClick={() => openDevModal(t, 'resolve')}
+                              className="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span>✅ Resolve</span>
+                            </button>
+                          </>
+                        )}
+
+                        {t.status === 'under_qa' && (
+                          <button
+                            onClick={() => openDevModal(t, 'resolve')}
+                            className="col-span-2 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✅ Mark Completed</span>
+                          </button>
+                        )}
+
+                        {/* Always show Details & Chat */}
+                        <Link
+                          to={`/design-requests/${t.id}`}
+                          className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] text-center transition-all border border-slate-700"
+                        >
+                          Details ➔
+                        </Link>
+                        <Link
+                          to="/chat"
+                          className="py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-brand-300 font-bold text-[11px] text-center transition-all border border-slate-700 flex items-center justify-center gap-1"
+                        >
+                          <span>💬 Chat</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -759,6 +1297,168 @@ export default function Dashboard() {
                 <p className="text-[11px] text-slate-400 mt-1">Direct message your Team Lead, collaborate in channels, and share files.</p>
               </Link>
             </>
+          ) : user.role === 'developer' ? (
+            <>
+              <Link
+                to="/dev-requests"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  💻
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Assigned Dev Tickets
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Manage all assigned developer tasks, update status, and review QA.</p>
+              </Link>
+
+              <Link
+                to="/dev-requests?status=in_progress"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  ⚙️
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  In-Progress Tasks
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Jump straight to your active development workload and code fixes.</p>
+              </Link>
+
+              <Link
+                to="/dev-requests?status=under_qa"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  🔍
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  QA Review Queue
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Review tickets submitted for employee testing and verification.</p>
+              </Link>
+
+              <Link
+                to="/chat"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  💬
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Live Staff Chat
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Real-time messaging with employees and team leads for bug reproduction.</p>
+              </Link>
+            </>
+          ) : user.role === 'designer' ? (
+            <>
+              <Link
+                to="/design-requests"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  ✍️
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Assigned Editor Tasks
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Manage all graphic visuals, blog banners, On-Page graphics, and keyword assets.</p>
+              </Link>
+
+              <Link
+                to="/design-requests?status=in_progress"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  ⚙️
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  In-Progress Visuals
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Jump straight to your active graphic design and video editing workload.</p>
+              </Link>
+
+              <Link
+                to="/design-requests?status=under_qa"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  🔍
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  QA Review Queue
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Inspect completed visual assets submitted for employee testing & approval.</p>
+              </Link>
+
+              <Link
+                to="/chat"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  💬
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Live Staff Chat
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Real-time messaging with employees and team leads for visual asset briefs.</p>
+              </Link>
+            </>
+          ) : ['supervisor', 'super_admin', 'admin'].includes(user.role) ? (
+            <>
+              <Link
+                to="/supervisor"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  👁️
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Supervisor Command Hub
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Live team oversight, shared files & PDF hub, ticket activity monitoring.</p>
+              </Link>
+
+              <Link
+                to="/design-requests"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  🎨
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Editor Visual Requests
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Track graphic design, blog banners, and On-Page visual assets.</p>
+              </Link>
+
+              <Link
+                to="/dev-requests"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  🛠️
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  Developer Tickets
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Track speed, hosting, SSL, and custom technical bug fixes.</p>
+              </Link>
+
+              <Link
+                to="/reports"
+                className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-brand-300 hover:shadow-sm transition-all group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-sm mb-3 group-hover:scale-105 transition-transform">
+                  📄
+                </div>
+                <h4 className="text-xs font-extrabold text-slate-800 group-hover:text-brand-600 transition-colors">
+                  All SEO Reports
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-1">Review Submitted, Forwarded, and Approved employee campaign reports.</p>
+              </Link>
+            </>
           ) : (
             <>
               <Link
@@ -816,6 +1516,65 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Quick Developer Action Modal */}
+      {devModalTicket && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <span>{devModalAction === 'resolve' ? '✅ Resolve Request' : '🔍 Submit for QA'}</span>
+              </h3>
+              <button onClick={closeDevModal} className="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Updating ticket: <strong className="text-brand-300">"{devModalTicket.title}"</strong>
+            </p>
+
+            <form onSubmit={handleDevModalSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  {devModalAction === 'resolve'
+                    ? 'Resolution Note (sent to employee in chat & notification):'
+                    : 'QA Submission Note for Employee:'}
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  className="w-full rounded-xl bg-slate-800 border border-slate-700 text-xs text-white p-3 focus:border-brand-500 focus:outline-none"
+                  placeholder={
+                    devModalAction === 'resolve'
+                      ? 'Describe what was fixed (e.g., DNS A records updated, SSL renewed, page speed cached)...'
+                      : 'Provide instructions for the employee to test the changes...'
+                  }
+                  value={devModalMsg}
+                  onChange={(e) => setDevModalMsg(e.target.value)}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={closeDevModal}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={devModalSubmitting}
+                  className={`px-5 py-2 rounded-xl font-extrabold text-xs text-white shadow-lg transition-all cursor-pointer ${
+                    devModalAction === 'resolve' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-indigo-600 hover:bg-indigo-500'
+                  }`}
+                >
+                  {devModalSubmitting ? 'Submitting...' : devModalAction === 'resolve' ? 'Resolve & Notify' : 'Submit for QA'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

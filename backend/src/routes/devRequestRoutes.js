@@ -8,15 +8,16 @@ const ctrl = require('../controllers/devRequestController');
 const router = express.Router();
 router.use(authenticate);
 
-// developer list for TL/admin to assign
-router.get('/developers', authorize('team_lead', 'admin', 'super_admin'), ctrl.listDevelopers);
+// developer list for employees/TL/admin to assign
+router.get('/developers', authorize('employee', 'team_lead', 'admin', 'super_admin'), ctrl.listDevelopers);
 
 // export CSV
-router.get('/export', authorize('team_lead', 'developer', 'admin', 'super_admin'), ctrl.exportCSV);
+router.get('/export', authorize('team_lead', 'developer', 'admin', 'super_admin', 'supervisor'), ctrl.exportCSV);
 
-// list + detail (role-scoped inside controller)
+// list + detail + delete (role-scoped inside controller)
 router.get('/', ctrl.listRequests);
 router.get('/:id', ctrl.getRequest);
+router.delete('/:id', ctrl.deleteRequest);
 
 // employee raises a request
 router.post('/', authorize('employee'), [body('title').trim().notEmpty()], validate, ctrl.createRequest);

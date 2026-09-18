@@ -483,6 +483,35 @@ export default function DevRequestDetail() {
         </div>
       )}
 
+      {/* Delete Request Option */}
+      {(r.employee_id === user.id || isAdmin || isAssignedTL) && (
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!window.confirm('Are you sure you want to delete this developer request permanently?')) return;
+              setBusy(true);
+              try {
+                const res = await api.delete(`/dev-requests/${id}`);
+                if (res.data.success) {
+                  navigate('/dev-requests');
+                } else {
+                  alert(res.data.message || 'Failed to delete request');
+                }
+              } catch (e) {
+                alert(e.response?.data?.message || 'Failed to delete request');
+              } finally {
+                setBusy(false);
+              }
+            }}
+            disabled={busy}
+            className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold text-xs border border-rose-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          >
+            <span>🗑️</span> Delete Developer Request
+          </button>
+        </div>
+      )}
+
       {/* Activity & Comments */}
       <div className="card space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-slate-100">

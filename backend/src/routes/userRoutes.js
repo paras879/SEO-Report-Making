@@ -21,7 +21,9 @@ router.post(
     body('password')
       .matches(/^(?=.*[A-Za-z])(?=.*\d).{8,}$/)
       .withMessage('Password must be at least 8 characters and contain at least 1 letter and 1 number'),
-    body('role').isIn(['admin', 'team_lead', 'employee']).withMessage('Invalid role'),
+    body('role')
+      .isIn(['admin', 'team_lead', 'employee', 'developer', 'designer', 'editor', 'supervisor'])
+      .withMessage('Invalid role'),
   ],
   validate,
   ctrl.createUser

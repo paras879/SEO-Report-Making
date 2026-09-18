@@ -1,29 +1,43 @@
 import { useEffect, useState } from 'react';
 import api from '../api/client';
 import { roleLabel } from '../constants';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState({ range: 'all', from: '', to: '' });
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/dashboard/audit?limit=200')
+    api.get('/dashboard/audit?limit=300')
       .then((r) => setLogs(r.data.logs || []))
       .catch((e) => setErr(e.response?.data?.message || 'Failed to load audit logs'))
       .finally(() => setLoading(false));
   }, []);
 
   const filteredLogs = logs.filter((l) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      (l.user_name && l.user_name.toLowerCase().includes(q)) ||
-      (l.action && l.action.toLowerCase().includes(q)) ||
-      (l.entity_type && l.entity_type.toLowerCase().includes(q)) ||
-      (l.ip_address && l.ip_address.toLowerCase().includes(q))
-    );
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        (l.user_name && l.user_name.toLowerCase().includes(q)) ||
+        (l.action && l.action.toLowerCase().includes(q)) ||
+        (l.entity_type && l.entity_type.toLowerCase().includes(q)) ||
+        (l.ip_address && l.ip_address.toLowerCase().includes(q));
+      if (!matchesSearch) return false;
+    }
+
+    if (dateFilter.from && l.created_at) {
+      const logDate = new Date(l.created_at).toISOString().slice(0, 10);
+      if (logDate < dateFilter.from) return false;
+    }
+    if (dateFilter.to && l.created_at) {
+      const logDate = new Date(l.created_at).toISOString().slice(0, 10);
+      if (logDate > dateFilter.to) return false;
+    }
+
+    return true;
   });
 
   const getActionColor = (action = '') => {
@@ -60,18 +74,21 @@ export default function AuditLogs() {
       )}
 
       {/* Filter / Search Toolbar */}
-      <div className="card p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
-          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-          <input
-            className="input text-xs pl-9 py-2"
-            placeholder="Search by user, action, IP, or entity..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      <div className="card p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+            <input
+              className="input text-xs pl-9 py-2 font-semibold"
+              placeholder="Search by user, action, IP, or entity..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <DateRangeFilter onChange={setDateFilter} />
         </div>
-        <span className="text-xs font-semibold text-slate-400 self-end sm:self-auto">
-          Showing {filteredLogs.length} of {logs.length} logged entries
+        <span className="text-xs font-semibold text-slate-400 shrink-0">
+          Showing {filteredLogs.length} of {logs.length} entries
         </span>
       </div>
 

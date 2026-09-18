@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const STATUS_BADGES = {
   submitted: { label: 'Submitted', color: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -28,6 +29,7 @@ export default function DesignRequests() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [blogCategoryFilter, setBlogCategoryFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState({ range: 'all', from: '', to: '' });
 
   const loadRequests = async () => {
     setLoading(true);
@@ -37,6 +39,8 @@ export default function DesignRequests() {
       if (categoryFilter) queryParams.set('category', categoryFilter);
       if (blogCategoryFilter) queryParams.set('blog_category', blogCategoryFilter);
       if (search) queryParams.set('search', search);
+      if (dateFilter.from) queryParams.set('from', dateFilter.from);
+      if (dateFilter.to) queryParams.set('to', dateFilter.to);
 
       const res = await api.get(`/design-requests?${queryParams.toString()}`);
       if (res.data.success) {
@@ -51,36 +55,65 @@ export default function DesignRequests() {
 
   useEffect(() => {
     loadRequests();
-  }, [statusFilter, categoryFilter, blogCategoryFilter]);
+  }, [statusFilter, categoryFilter, blogCategoryFilter, dateFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     loadRequests();
   };
 
-  const handleExportCSV = () => {
-    window.open(`${api.defaults.baseURL}/design-requests/export`, '_blank');
+  const handleExportCSV = async () => {
+    try {
+      const res = await api.get('/design-requests/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `design-requests-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Export failed. Please try again.');
+    }
+  };
+
+  const handleDelete = async (id, e) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    if (!window.confirm('Are you sure you want to delete this design request permanently?')) return;
+    try {
+      const res = await api.delete(`/design-requests/${id}`);
+      if (res.data.success) {
+        setRequests((prev) => prev.filter((r) => r.id !== id));
+      } else {
+        alert(res.data.message || 'Failed to delete request');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete request');
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-[1600px] mx-auto space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>🎨</span> Designer Requests
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-3 text-white">
+            <span className="p-2 rounded-2xl bg-brand-600/30 border border-brand-500/30 shadow-inner">✍️</span> Editor Requests
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manage graphic visuals, blog banners, On-Page graphics, and keyword asset requirements.
+          <p className="text-xs sm:text-sm text-slate-300 mt-1">
+            Manage graphic visuals, blog banners, On-Page graphics, video edits, and keyword asset requirements.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 relative z-10">
           {/* CSV Export Button */}
           <button
             type="button"
             onClick={handleExportCSV}
-            className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition-all flex items-center gap-2 shadow-sm"
           >
             <span>📥</span> Export CSV / Excel
           </button>
@@ -89,7 +122,7 @@ export default function DesignRequests() {
           {user.role === 'employee' && (
             <Link
               to="/design-requests/new"
-              className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-brand-900/20 transition-all flex items-center gap-1.5 shrink-0"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-brand-900/30 transition-all flex items-center gap-2 shrink-0 transform hover:-translate-y-0.5"
             >
               <span>➕</span> New Request / CSV Upload
             </Link>
@@ -142,36 +175,40 @@ export default function DesignRequests() {
           </form>
         </div>
 
-        {/* Dropdown Filters */}
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="font-semibold">Category:</span>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 focus:outline-none"
-            >
-              <option value="">All Categories</option>
-              <option value="On-Page">On-Page Graphic</option>
-              <option value="Blog Request">Blog Request</option>
-              <option value="Social Media / Infographics">Social Media / Infographic</option>
-              <option value="Custom Graphic">Custom Graphic</option>
-            </select>
-          </div>
+        {/* Live Date Filter & Dropdown Filters */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+          <DateRangeFilter onChange={setDateFilter} />
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <span className="font-semibold">Blog Sub-Category:</span>
-            <select
-              value={blogCategoryFilter}
-              onChange={(e) => setBlogCategoryFilter(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 focus:outline-none"
-            >
-              <option value="">All Blog Categories</option>
-              <option value="Information">Information</option>
-              <option value="Lexical">Lexical / Lyrical</option>
-              <option value="Case Studies">Case Studies</option>
-              <option value="Other">Other</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="font-semibold">Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 focus:outline-none"
+              >
+                <option value="">All Categories</option>
+                <option value="On-Page">On-Page Graphic</option>
+                <option value="Blog Request">Blog Request</option>
+                <option value="Social Media / Infographics">Social Media / Infographic</option>
+                <option value="Custom Graphic">Custom Graphic</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="font-semibold">Blog Sub-Category:</span>
+              <select
+                value={blogCategoryFilter}
+                onChange={(e) => setBlogCategoryFilter(e.target.value)}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 text-xs bg-white text-slate-700 focus:outline-none"
+              >
+                <option value="">All Blog Categories</option>
+                <option value="Information">Information</option>
+                <option value="Lexical">Lexical / Lyrical</option>
+                <option value="Case Studies">Case Studies</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -180,13 +217,13 @@ export default function DesignRequests() {
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-slate-400 font-medium text-sm animate-pulse">
-            Loading design requests...
+            Loading editor requests...
           </div>
         ) : requests.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <span className="text-4xl">🎨</span>
-            <p className="font-semibold text-slate-700 text-sm">No designer requests found</p>
-            <p className="text-xs text-slate-400">Try changing filters or submit a new design request.</p>
+            <span className="text-4xl">✍️</span>
+            <p className="font-semibold text-slate-700 text-sm">No editor requests found</p>
+            <p className="text-xs text-slate-400">Try changing filters or submit a new editor request.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -200,8 +237,9 @@ export default function DesignRequests() {
                   <th className="p-3.5">Keywords</th>
                   <th className="p-3.5">Priority</th>
                   <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Employee / Designer</th>
-                  <th className="p-3.5 text-right">Created</th>
+                  <th className="p-3.5">Employee / Editor</th>
+                  <th className="p-3.5">Created</th>
+                  <th className="p-3.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/80">
@@ -256,13 +294,34 @@ export default function DesignRequests() {
                       <td className="p-3.5">
                         <div className="text-slate-800 font-semibold">{r.employee_name}</div>
                         {r.designer_name ? (
-                          <div className="text-[10px] text-indigo-600 font-semibold">🎨 {r.designer_name}</div>
+                          <div className="text-[10px] text-indigo-600 font-semibold">✍️ {r.designer_name}</div>
                         ) : (
                           <div className="text-[10px] text-slate-400">Unassigned</div>
                         )}
                       </td>
-                      <td className="p-3.5 text-right text-slate-500 font-medium">
+                      <td className="p-3.5 text-slate-500 font-medium">
                         {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </td>
+                      <td className="p-3.5 text-right space-x-1.5">
+                        {['supervisor', 'admin', 'super_admin'].includes(user.role) && (
+                          <Link
+                            to={`/design-requests/${r.id}`}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all text-[11px] inline-flex items-center gap-1 cursor-pointer shadow-xs"
+                            title="Add direct supervisory note"
+                          >
+                            <span>💬</span> Direct Note
+                          </Link>
+                        )}
+                        {(r.employee_id === user.id || ['admin', 'super_admin', 'team_lead'].includes(user.role)) && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(r.id, e)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white font-bold border border-rose-200 transition-all text-[11px] inline-flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Delete request"
+                          >
+                            <span>🗑️</span> Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );

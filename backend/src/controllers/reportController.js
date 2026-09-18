@@ -1,4 +1,4 @@
-const { pool, withTx } = require('../config/db');
+const { pool } = require('../config/db');
 const { logAudit } = require('../utils/audit');
 const { notify } = require('../utils/notify');
 
@@ -54,7 +54,7 @@ function pickReportFields(b) {
 
 // ---- helper: kya ye user is report ko dekh sakta hai? ----
 async function canAccessReport(user, report) {
-  if (user.role === 'super_admin') return true;
+  if (['super_admin', 'supervisor'].includes(user.role)) return true;
   if (user.role === 'admin') {
     return ['forwarded', 'admin_approved', 'admin_rejected'].includes(report.status);
   }

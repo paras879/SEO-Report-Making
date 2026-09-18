@@ -15,10 +15,19 @@ export default function DevRequestForm() {
   const [credentialsNote, setCredentialsNote] = useState('');
   const [showCreds, setShowCreds] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [developers, setDevelopers] = useState([]);
+  const [selectedDeveloper, setSelectedDeveloper] = useState('');
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    api.get('/dev-requests/developers')
+      .then((r) => setDevelopers(r.data.developers || []))
+      .catch(() => {});
+  }, []);
+
   const activeCategoryMeta = DEV_CATEGORIES.find((c) => c.value === category) || DEV_CATEGORIES[0];
+  const selectedDevObj = developers.find((d) => String(d.id) === String(selectedDeveloper));
 
   const handleCategorySelect = (catValue) => {
     setCategory(catValue);
@@ -95,6 +104,7 @@ export default function DevRequestForm() {
       .map((s) => ({ name: s.name.trim(), urls: s.urls.map((u) => u.trim()).filter(Boolean) }))
       .filter((s) => s.name || s.urls.length > 0);
     if (cleaned.length === 0) return setErr('Add at least one site (name or URL)');
+    if (!selectedDeveloper) return setErr('Please select a Developer before submitting this request.');
 
     setSaving(true);
     try {
@@ -105,6 +115,7 @@ export default function DevRequestForm() {
         due_date: dueDate || null,
         description,
         priority,
+        developer_id: selectedDeveloper,
         sites: cleaned,
         credentials_note: credentialsNote,
         attachments,
@@ -134,7 +145,7 @@ export default function DevRequestForm() {
       <div>
         <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Raise a Developer Request</h1>
         <p className="text-xs text-slate-500 mt-1">
-          Facing a technical / site issue (site not opening, error, etc.)? Report it here — it goes to your Team Lead, who forwards it to a Developer.
+          Facing a technical / site issue (site not opening, error, etc.)? Select a Developer to send your request directly or submit to the team.
         </p>
       </div>
 
@@ -401,14 +412,82 @@ export default function DevRequestForm() {
         )}
       </div>
 
+      {/* Section 5: Select Developer / Assignee (Mandatory) */}
+      <div className="card space-y-3 bg-gradient-to-r from-indigo-50/80 via-purple-50/40 to-slate-50 border border-indigo-200/90 rounded-2xl shadow-sm p-5">
+        <div className="flex items-center justify-between pb-2 border-b border-indigo-100">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">05</div>
+            <div>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-indigo-950">
+                Select Developer / Assignee <span className="text-rose-500">*</span>
+              </h2>
+              <p className="text-[11px] text-indigo-600">Assign a specific developer to handle your request. Submission is blocked until selected.</p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-indigo-700 bg-white px-3 py-1 rounded-xl border border-indigo-200 shadow-xs">
+            {developers.length} Developer{developers.length !== 1 ? 's' : ''} Available
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+          {developers.map((d) => {
+            const isSel = String(d.id) === String(selectedDeveloper);
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => { setSelectedDeveloper(String(d.id)); setErr(''); }}
+                className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                  isSel
+                    ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-sm font-bold'
+                    : 'border-indigo-100 hover:border-indigo-300 bg-white/80 hover:bg-white text-slate-800'
+                }`}
+              >
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                  👨‍💻
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-xs text-slate-900 truncate">{d.name}</p>
+                    {isSel && <span className="text-indigo-600 font-bold text-xs shrink-0">✓</span>}
+                  </div>
+                  <p className="text-[10px] text-slate-500 font-mono truncate">@{d.username} • [{d.role?.toUpperCase() || 'DEVELOPER'}]</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {!selectedDeveloper && (
+          <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
+            <span>⚠️</span> You MUST select a developer before submitting this request.
+          </p>
+        )}
+      </div>
+
       {/* Footer */}
       <div className="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/80 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="text-xs text-slate-500">
           <p className="font-semibold text-slate-700">Ready to send?</p>
-          <p>This request will go straight to your Team Lead with priority: <b className="capitalize text-slate-800">{priority}</b>.</p>
+          <p>
+            This request will be sent {selectedDevObj ? `directly to Developer ${selectedDevObj.name}` : 'to the Developer team'} with priority: <b className="capitalize text-slate-800">{priority}</b>.
+          </p>
         </div>
-        <button type="button" className="btn-primary w-full sm:w-auto text-xs py-2.5 px-5 font-bold shadow-md" disabled={saving} onClick={submit}>
-          {saving ? 'Sending...' : '🚀 Submit to Team Lead'}
+        <button
+          type="button"
+          className={`w-full sm:w-auto text-xs py-2.5 px-6 font-bold shadow-md rounded-xl transition-all flex items-center justify-center gap-2 ${
+            selectedDeveloper
+              ? 'btn-primary'
+              : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
+          }`}
+          disabled={saving || !selectedDeveloper}
+          onClick={submit}
+        >
+          {saving
+            ? 'Sending...'
+            : selectedDevObj
+            ? `🚀 Submit to Developer (${selectedDevObj.name})`
+            : '⚠️ Select a Developer First'}
         </button>
       </div>
     </div>
