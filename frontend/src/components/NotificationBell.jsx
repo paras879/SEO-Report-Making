@@ -48,7 +48,22 @@ export default function NotificationBell() {
     }
     setOpen(false);
     load();
-    if (n.related_report_id) navigate(`/reports/${n.related_report_id}`);
+    if (n.related_report_id) {
+      navigate(`/reports/${n.related_report_id}`);
+    } else if (n.title?.toLowerCase().includes('design') || n.title?.toLowerCase().includes('editor')) {
+      navigate('/design-requests');
+    } else if (n.title?.toLowerCase().includes('dev')) {
+      navigate('/dev-requests');
+    }
+  };
+
+  const markAll = async () => {
+    try {
+      await api.patch('/notifications/read-all');
+      load();
+    } catch (e) {
+      /* ignore */
+    }
   };
 
   const deleteItem = async (e, id) => {
