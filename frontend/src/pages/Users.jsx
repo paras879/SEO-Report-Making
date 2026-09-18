@@ -439,7 +439,7 @@ export default function Users() {
                             u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-600'
                           }`}
                         />
-                        {u.is_active ? 'Active' : '🚫 Blocked'}
+                        {u.is_active ? 'Active' : '🚫 Deactivated / Blocked'}
                       </span>
                     </td>
 
@@ -466,7 +466,7 @@ export default function Users() {
                           <span>Reset</span>
                         </button>
 
-                        {/* 3. Toggle Block / Unblock Status */}
+                        {/* 3. Toggle Block / Deactivate Status */}
                         {u.id !== user.id && (
                           <button
                             onClick={() => toggleActive(u)}
@@ -475,9 +475,9 @@ export default function Users() {
                                 ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
                                 : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600 shadow-sm'
                             }`}
-                            title={u.is_active ? 'Block User Account' : 'Unblock User Account'}
+                            title={u.is_active ? 'Deactivate or Block User Account' : 'Activate or Unblock User Account'}
                           >
-                            {u.is_active ? '🔒 Block' : '🔓 Unblock Account'}
+                            {u.is_active ? '🔒 Deactivate / Block' : '🔓 Activate / Unblock'}
                           </button>
                         )}
 
