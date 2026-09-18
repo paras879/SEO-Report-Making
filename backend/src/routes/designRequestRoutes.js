@@ -12,7 +12,7 @@ router.use(authenticate);
 router.get('/designers', authorize('employee', 'team_lead', 'admin', 'super_admin'), ctrl.listDesigners);
 
 // export CSV
-router.get('/export', authorize('team_lead', 'designer', 'admin', 'super_admin', 'employee'), ctrl.exportCSV);
+router.get('/export', authorize('team_lead', 'designer', 'admin', 'super_admin', 'supervisor', 'employee'), ctrl.exportCSV);
 
 // list + detail + delete
 router.get('/', ctrl.listRequests);

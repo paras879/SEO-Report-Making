@@ -472,22 +472,31 @@ async function addComment(req, res, next) {
   }
 }
 
-// GET /api/reports/export/csv   (admin / super_admin)  -> filtered reports as CSV
+// GET /api/reports/export/csv -> filtered reports as CSV
 async function exportReports(req, res, next) {
   try {
     const { status, team_id, from, to } = req.query;
     const conds = [];
     const params = [];
     let i = 1;
-    if (req.user.role === 'admin') conds.push(`r.status IN ('forwarded','admin_approved','admin_rejected')`);
+
+    if (req.user.role === 'admin') {
+      conds.push(`r.status IN ('forwarded','admin_approved','admin_rejected')`);
+    } else if (req.user.role === 'team_lead') {
+      conds.push(`(r.team_lead_id = $${i} OR r.team_id = (SELECT team_id FROM users WHERE id = $${i}))`);
+      params.push(req.user.id);
+      i++;
+    } else if (req.user.role === 'employee') {
+      conds.push(`r.employee_id = $${i++}`);
+      params.push(req.user.id);
+    }
+
     if (status) { conds.push(`r.status = $${i++}`); params.push(status); }
     if (team_id) { conds.push(`r.team_id = $${i++}`); params.push(team_id); }
     if (from) { conds.push(`r.report_date >= $${i++}`); params.push(from); }
     if (to) { conds.push(`r.report_date <= $${i++}`); params.push(to); }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
-    // NOTE: select r.* (not named columns) so a missing/renamed column on an
-    // out-of-date DB just comes back blank instead of crashing the export (500).
     const { rows } = await pool.query(
       `SELECT r.*, e.name AS employee, tl.name AS team_lead, t.name AS team
        FROM reports r
@@ -497,6 +506,14 @@ async function exportReports(req, res, next) {
        ${where} ORDER BY r.report_date DESC`, params
     );
 
+    const safeDate = (d) => {
+      if (!d) return '';
+      try {
+        const dt = new Date(d);
+        return isNaN(dt.getTime()) ? String(d).slice(0, 10) : dt.toISOString().slice(0, 10);
+      } catch (e) { return String(d || '').slice(0, 10); }
+    };
+
     const headers = ['ID','Date','Title','Priority','Status','Employee','Team Lead','Team','Client','Project','Website','Hours','Backlinks','Keywords','Task Done','Challenges','Next Plan','Remarks'];
     const esc = (v) => {
       if (v === null || v === undefined) return '';
@@ -505,11 +522,28 @@ async function exportReports(req, res, next) {
     };
     const lines = [headers.join(',')];
     for (const r of rows) {
-      lines.push([r.id, r.report_date?.toISOString?.().slice(0,10) || r.report_date, r.title, r.priority, r.status,
-        r.employee, r.team_lead, r.team, r.client_name, r.project_name, r.website_url, r.hours_worked,
-        r.backlinks_created, r.keywords, r.task_done, r.challenges, r.next_day_plan, r.remarks].map(esc).join(','));
+      lines.push([
+        r.id,
+        safeDate(r.report_date),
+        r.title,
+        r.priority,
+        r.status,
+        r.employee,
+        r.team_lead,
+        r.team,
+        r.client_name,
+        r.project_name,
+        r.website_url,
+        r.hours_worked,
+        r.backlinks_created,
+        r.keywords,
+        r.task_done,
+        r.challenges,
+        r.next_day_plan,
+        r.remarks
+      ].map(esc).join(','));
     }
-    const csv = '﻿' + lines.join('\n'); // BOM so Excel opens UTF-8 correctly
+    const csv = '\uFEFF' + lines.join('\n'); // BOM for UTF-8 Excel
     await logAudit({ userId: req.user.id, action: 'reports_exported', details: { count: rows.length }, req });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="reports_${Date.now()}.csv"`);

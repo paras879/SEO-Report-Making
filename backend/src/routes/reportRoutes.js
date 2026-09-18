@@ -10,8 +10,8 @@ const att = require('../controllers/attachmentController');
 const router = express.Router();
 router.use(authenticate);
 
-// export (admin/super_admin) — MUST be before '/:id'
-router.get('/export/csv', authorize('admin', 'super_admin', 'supervisor'), ctrl.exportReports);
+// export (admin/super_admin/supervisor/team_lead/employee) — MUST be before '/:id'
+router.get('/export/csv', authorize('admin', 'super_admin', 'supervisor', 'team_lead', 'employee'), ctrl.exportReports);
 
 // list + get (role scoped inside controller)
 router.get('/', ctrl.listReports);

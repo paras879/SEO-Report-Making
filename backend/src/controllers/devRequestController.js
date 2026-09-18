@@ -418,14 +418,28 @@ async function listRequests(req, res, next) {
 // GET /api/dev-requests/export -> CSV
 async function exportCSV(req, res, next) {
   try {
-    if (req.user.role === 'employee') {
-      return res.status(403).json({ success: false, message: 'Access denied' });
-    }
     const conds = [];
     const params = [];
     let i = 1;
     if (req.user.role === 'team_lead') { conds.push(`r.team_lead_id=$${i++}`); params.push(req.user.id); }
     else if (req.user.role === 'developer') { conds.push(`r.developer_id=$${i++}`); params.push(req.user.id); }
+    else if (req.user.role === 'employee') { conds.push(`r.employee_id=$${i++}`); params.push(req.user.id); }
+
+    const safeIso = (d) => {
+      if (!d) return '';
+      try {
+        const dt = new Date(d);
+        return isNaN(dt.getTime()) ? String(d) : dt.toISOString();
+      } catch (e) { return String(d || ''); }
+    };
+
+    const safeDateOnly = (d) => {
+      if (!d) return '';
+      try {
+        const dt = new Date(d);
+        return isNaN(dt.getTime()) ? String(d).slice(0, 10) : dt.toISOString().split('T')[0];
+      } catch (e) { return String(d || '').slice(0, 10); }
+    };
 
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const { rows } = await pool.query(
@@ -443,7 +457,7 @@ async function exportCSV(req, res, next) {
     const csvLines = [headers.join(',')];
 
     for (const r of rows) {
-      const escape = (v) => `"${String(v || '').replace(/"/g, '""')}"`;
+      const escape = (v) => `"${String(v === null || v === undefined ? '' : v).replace(/"/g, '""')}"`;
       csvLines.push([
         r.id,
         escape(r.title),
@@ -455,9 +469,9 @@ async function exportCSV(req, res, next) {
         escape(r.team_lead_name),
         escape(r.developer_name),
         r.hours_spent || 0,
-        escape(r.due_date ? new Date(r.due_date).toISOString().split('T')[0] : ''),
-        escape(new Date(r.created_at).toISOString()),
-        escape(r.resolved_at ? new Date(r.resolved_at).toISOString() : ''),
+        escape(safeDateOnly(r.due_date)),
+        escape(safeIso(r.created_at)),
+        escape(safeIso(r.resolved_at)),
       ].join(','));
     }
 
