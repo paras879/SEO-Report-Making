@@ -630,8 +630,8 @@ export default function Dashboard() {
         {user.role === 'super_admin' && (
           <>
             <StatCard label="Total Reports" value={s.total_reports} icon="📄" color="brand" subtitle="All-time created" to="/reports" />
-            <StatCard label="Pending @ TL" value={s.pending_tl} icon="⏳" color="amber" subtitle="Awaiting team lead" to="/forwarded-reports" badge="TL Queue" />
-            <StatCard label="Pending @ Admin" value={s.pending_admin} icon="📬" color="indigo" subtitle="Needs admin review" to="/forwarded-reports" badge="Admin Queue" />
+            <StatCard label="Pending @ TL" value={s.pending_tl} icon="⏳" color="amber" subtitle="Awaiting team lead" to="/reports" badge="TL Queue" />
+            <StatCard label="Pending @ Admin" value={s.pending_admin} icon="📬" color="indigo" subtitle="Needs admin review" to="/reports" badge="Admin Queue" />
             <StatCard label="Approved Reports" value={s.approved} icon="✅" color="emerald" subtitle="Passed review" to="/reports" />
             <StatCard label="Active Squads" value={s.teams} icon="🗂️" color="brand" subtitle="Organized teams" to="/teams" />
             <StatCard label="Open Dev Tickets" value={s.open_dev_tickets} icon="🛠️" color="rose" subtitle="Active technical tasks" to="/dev-requests" badge="Dev Ops" />
@@ -642,8 +642,8 @@ export default function Dashboard() {
 
         {user.role === 'admin' && (
           <>
-            <StatCard label="Pending Admin Review" value={s.pending_admin} icon="📬" color="amber" subtitle="Awaiting your approval" to="/forwarded-reports" badge="Action Needed" />
-            <StatCard label="Approved Reports" value={s.approved} icon="✅" color="emerald" subtitle="Verified and active" to="/forwarded-reports" />
+            <StatCard label="Pending Admin Review" value={s.pending_admin} icon="📬" color="amber" subtitle="Awaiting your approval" to="/reports" badge="Action Needed" />
+            <StatCard label="Approved Reports" value={s.approved} icon="✅" color="emerald" subtitle="Verified and active" to="/reports" />
             <StatCard label="Active Squads" value={s.teams} icon="🗂️" color="indigo" subtitle="Campaign teams" to="/teams" />
             <StatCard label="Team Members" value={s.team_members} icon="👥" color="brand" subtitle="Staff & specialists" to="/users" />
             <StatCard label="Open Dev Tickets" value={s.open_dev_tickets} icon="🛠️" color="rose" subtitle="Technical blockers" to="/dev-requests" badge="Dev Ops" />
@@ -653,9 +653,9 @@ export default function Dashboard() {
 
         {user.role === 'team_lead' && (
           <>
-            <StatCard label="Pending Squad Review" value={s.pending_review} icon="⏳" color="amber" subtitle="Awaiting your review" to="/forwarded-reports" badge="Action Needed" />
-            <StatCard label="Forwarded to Admin" value={s.forwarded} icon="⏩" color="indigo" subtitle="Sent for final sign-off" to="/forwarded-reports" />
-            <StatCard label="Approved by Admin" value={s.approved} icon="✅" color="emerald" subtitle="Completed reports" to="/forwarded-reports" />
+            <StatCard label="Pending Squad Review" value={s.pending_review} icon="⏳" color="amber" subtitle="Awaiting your review" to="/reports" badge="Action Needed" />
+            <StatCard label="Forwarded to Admin" value={s.forwarded} icon="⏩" color="indigo" subtitle="Sent for final sign-off" to="/reports" />
+            <StatCard label="Approved by Admin" value={s.approved} icon="✅" color="emerald" subtitle="Completed reports" to="/reports" />
             <StatCard label="My Squad Members" value={s.my_employees} icon="👥" color="brand" subtitle="Assigned SEO staff" to="/teams" />
             <StatCard label="Open Dev Requests" value={s.open_dev_tickets} icon="🛠️" color="rose" subtitle="Squad dev tickets" to="/dev-requests" />
           </>
