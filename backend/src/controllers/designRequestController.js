@@ -60,9 +60,24 @@ async function createRequest(req, res, next) {
       return res.status(422).json({ success: false, message: 'You are not assigned to any team yet. Contact admin.' });
     }
 
-    const designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    let designerId = null;
+    const isAllEditors = req.body.designer_id === 'all';
+    if (isAllEditors) {
+      const activeDes = await pool.query(
+        "SELECT id FROM users WHERE role IN ('designer', 'editor') AND is_active=TRUE ORDER BY id ASC LIMIT 1"
+      );
+      if (activeDes.rows.length > 0) {
+        designerId = activeDes.rows[0].id;
+      } else {
+        const fallback = await pool.query("SELECT id FROM users WHERE is_active=TRUE ORDER BY id ASC LIMIT 1");
+        designerId = fallback.rows[0]?.id || null;
+      }
+    } else {
+      designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    }
+
     if (!designerId) {
-      return res.status(422).json({ success: false, message: 'Please select a designer to assign this request' });
+      return res.status(422).json({ success: false, message: 'Please select an editor to assign this request' });
     }
 
     const category = String(req.body.category || 'On-Page').trim();
@@ -93,10 +108,19 @@ async function createRequest(req, res, next) {
     await pool.query(
       `INSERT INTO design_request_events (request_id, actor_id, actor_role, action, message)
        VALUES ($1,$2,'employee','submitted',$3)`,
-      [request.id, req.user.id, `Design Request raised & assigned to designer [Category: ${category}${blogCategory ? `, Blog Category: ${blogCategory}` : ''}]`]
+      [request.id, req.user.id, `Design Request raised & assigned to ${isAllEditors ? 'All Editors' : 'editor'} [Category: ${category}${blogCategory ? `, Blog Category: ${blogCategory}` : ''}]`]
     );
 
-    if (designerId) {
+    if (isAllEditors) {
+      const allEditors = await pool.query("SELECT id FROM users WHERE role IN ('designer', 'editor') AND is_active=TRUE");
+      for (const ed of allEditors.rows) {
+        await notify({
+          userId: ed.id,
+          title: 'New Editor Request Assigned (Whole Team) ✍️',
+          message: `${req.user.name} assigned an editor request to the whole team (${category}${title ? `: ${title}` : ''})`,
+        });
+      }
+    } else if (designerId) {
       await notify({
         userId: designerId,
         title: 'New Designer Request Assigned 🎨',

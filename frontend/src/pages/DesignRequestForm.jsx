@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
+import SearchableSiteInput from '../components/SearchableSiteInput';
 
 const CATEGORIES = [
   {
@@ -115,7 +116,9 @@ export default function DesignRequestForm() {
   const [bulkSuccess, setBulkSuccess] = useState('');
 
   const currentConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG['On-Page'];
-  const selectedDesignerObj = designers.find((d) => String(d.id) === String(selectedDesigner));
+  const selectedDesignerObj = selectedDesigner === 'all'
+    ? { id: 'all', name: 'All Editors (Whole Team)' }
+    : designers.find((d) => String(d.id) === String(selectedDesigner));
 
   useEffect(() => {
     api.get('/design-requests/designers')
@@ -552,12 +555,10 @@ export default function DesignRequestForm() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Client / Project Name</label>
-                <input
-                  type="text"
+                <SearchableSiteInput
                   value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="e.g. Apex Dental Clinic"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-medium bg-slate-50/30 focus:bg-white"
+                  onChange={(val) => setClientName(val)}
+                  placeholder="Search or select site (e.g. Apex Health Solutions)..."
                 />
               </div>
 
@@ -625,6 +626,30 @@ export default function DesignRequestForm() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+              {/* Option: All Editors (Whole Team) */}
+              <button
+                type="button"
+                onClick={() => { setSelectedDesigner('all'); setError(''); }}
+                className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                  selectedDesigner === 'all'
+                    ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-500/40 shadow-sm font-bold'
+                    : 'border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/80 text-indigo-950 font-bold'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${selectedDesigner === 'all' ? 'bg-white text-indigo-700' : 'bg-indigo-600 text-white'}`}>
+                  👥
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-xs truncate">All Editors (Whole Team)</p>
+                    {selectedDesigner === 'all' && <span className="text-white font-bold text-xs shrink-0">✓</span>}
+                  </div>
+                  <p className={`text-[10px] font-mono truncate ${selectedDesigner === 'all' ? 'text-indigo-100' : 'text-indigo-600'}`}>
+                    Broadcast request to all active editors
+                  </p>
+                </div>
+              </button>
+
               {designers.map((d) => {
                 const isSel = String(d.id) === String(selectedDesigner);
                 return (
@@ -652,6 +677,7 @@ export default function DesignRequestForm() {
                 );
               })}
             </div>
+
 
             {!selectedDesigner && (
               <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
@@ -751,6 +777,30 @@ export default function DesignRequestForm() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {/* Option: All Editors (Whole Team) */}
+              <button
+                type="button"
+                onClick={() => { setSelectedDesigner('all'); setBulkError(''); }}
+                className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                  selectedDesigner === 'all'
+                    ? 'border-indigo-600 bg-indigo-600 text-white ring-2 ring-indigo-500/40 shadow-sm font-bold'
+                    : 'border-indigo-200 bg-indigo-50/60 hover:bg-indigo-100/80 text-indigo-950 font-bold'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 shadow-xs ${selectedDesigner === 'all' ? 'bg-white text-indigo-700' : 'bg-indigo-600 text-white'}`}>
+                  👥
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-bold text-xs truncate">All Editors (Whole Team)</p>
+                    {selectedDesigner === 'all' && <span className="text-white font-bold text-xs shrink-0">✓</span>}
+                  </div>
+                  <p className={`text-[10px] font-mono truncate ${selectedDesigner === 'all' ? 'text-indigo-100' : 'text-indigo-600'}`}>
+                    Broadcast request to all active editors
+                  </p>
+                </div>
+              </button>
+
               {designers.map((d) => {
                 const isSel = String(d.id) === String(selectedDesigner);
                 return (
@@ -778,6 +828,7 @@ export default function DesignRequestForm() {
                 );
               })}
             </div>
+
           </div>
 
           {/* CSV Preview Table */}
