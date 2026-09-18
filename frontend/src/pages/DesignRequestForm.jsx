@@ -26,13 +26,6 @@ const CATEGORIES = [
     icon: '📱',
     gradient: 'from-purple-600 to-pink-600',
   },
-  {
-    id: 'Custom Graphic',
-    label: 'Custom Graphic / UI Design',
-    desc: 'Custom UI mockups & vector assets',
-    icon: '🎨',
-    gradient: 'from-pink-600 to-rose-600',
-  },
 ];
 
 const CATEGORY_CONFIG = {
@@ -71,18 +64,6 @@ const CATEGORY_CONFIG = {
     keywordsPlaceholder: 'e.g. 1080x1080 square, linkedin carousel 5 slides, infographic flowchart, 9:16 story',
     titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Carousel (5 Slides)',
     templateText: `1. Aspect Ratio / Platform (e.g. 1080x1080 for Instagram / 1080x1350 for LinkedIn)\n2. Slide-by-slide text breakdown (Slide 1: Cover, Slide 2-4: Key points, Slide 5: CTA)\n3. Highlight key statistics or process flowchart icons\n4. Include website URL / social handle watermark`,
-  },
-  'Custom Graphic': {
-    subCategoryLabel: 'Graphic & UI Asset Type',
-    subCategories: [
-      { id: 'UI Component', label: 'Custom UI Mockup', desc: 'Mockups for UI elements, cards & calculators', icon: '🧩' },
-      { id: 'Vector Illustration', label: 'Vector Illustration', desc: 'Custom icon sets & story illustrations', icon: '🎨' },
-      { id: 'PDF / eBook', label: 'eBook / Lead Magnet Cover', desc: 'Cover & page layout graphics for downloadable PDFs', icon: '📄' },
-      { id: 'Brand Asset', label: 'Logo / Trust Seal Badge', desc: 'Badges, trust seals & brand graphics', icon: '🏷️' },
-    ],
-    keywordsPlaceholder: 'e.g. ui mockup, custom vector illustration, pdf lead magnet cover, trust badge',
-    titlePlaceholder: 'e.g. 2026 Ultimate SEO Audit Guide PDF eBook Cover Design',
-    templateText: `1. Asset Type & Format required (e.g. SVG vector / PNG transparent / Figma design)\n2. Target placement & screen usage\n3. Brand guidelines & illustration style preference\n4. Copy / Text content to embed inside graphic`,
   },
 };
 
@@ -205,15 +186,16 @@ export default function DesignRequestForm() {
   // CSV Template Downloader
   const downloadCSVTemplte = () => {
     const csvContent =
-      'category,blog_category,title,keywords,points_to_include,priority,client_name\n' +
-      '"Blog Request","Information","SEO Audit Infographic","SEO audit, backlinks, technical seo","1. Include pie chart of backlink sources\\n2. Brand color blue #1e40af","high","Apex Dental"\n' +
-      '"On-Page","Hero Banner","Landing Page Hero Graphic","conversion rate, organic traffic","1. Show 150% traffic growth curve\\n2. Modern dark theme","high","Finance Hub"';
+      'category,blog_category,title,keywords,points_to_include,priority,client_name,due_date\n' +
+      '"On-Page","Hero Banner","Landing Page Hero Graphic","hero banner 1920x600, responsive","1. Dimensions 1920x600px desktop\\n2. Brand colors Dark Navy & Blue\\n3. CTA: Get Free SEO Audit","high","Apex Health Solutions","2026-10-01"\n' +
+      '"Blog Request","Information","Top 10 High Authority SEO Strategies","backlink audit, technical seo","1. Include comparison bar chart of organic traffic\\n2. Highlight 150% growth rate","medium","Metro Dental Care & Clinic","2026-10-05"\n' +
+      '"Social Media / Infographics","Social Carousel","5 Essential On-Page SEO Tips","linkedin carousel 5 slides, infographic","1. Slide 1: Cover\\n2. Slide 2-4: Key points\\n3. Slide 5: CTA","urgent","TechCrunch Inc","2026-10-10"';
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'blog_design_requests_template.csv');
+    link.setAttribute('download', 'editor_requests_bulk_template.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -283,18 +265,19 @@ export default function DesignRequestForm() {
       headers.forEach((h, idx) => {
         row[h] = cols[idx] || '';
       });
-      if (row.category || row.keywords || row.title || row.points_to_include) {
+      if (row.category || row.keywords || row.title || row.points_to_include || row.client_name) {
         rows.push({
           id: i,
           category: row.category || 'Blog Request',
-          blog_category: row.blog_category || row.blogcategory || 'Information',
+          blog_category: row.blog_category || row.blogcategory || row.sub_category || row.subcategory || 'Information',
           title: row.title || '',
           keywords: row.keywords || '',
-          points_to_include: row.points_to_include || row.pointstoinclude || row.points || '',
+          points_to_include: row.points_to_include || row.pointstoinclude || row.points || row.description || '',
           priority: ['low', 'medium', 'high', 'urgent'].includes((row.priority || '').toLowerCase())
             ? row.priority.toLowerCase()
             : 'medium',
-          client_name: row.client_name || row.clientname || '',
+          client_name: row.client_name || row.clientname || row.client || row.site || '',
+          due_date: row.due_date || row.duedate || row.target_date || row.targetdate || '',
         });
       }
     }
@@ -350,8 +333,16 @@ export default function DesignRequestForm() {
             </h1>
           </div>
 
-          {/* Mode Selector Tabs */}
-          <div className="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800 shrink-0">
+          {/* Mode Selector Tabs & Download Template */}
+          <div className="flex flex-wrap items-center gap-2 bg-slate-950/80 p-1 rounded-xl border border-slate-800 shrink-0">
+            <button
+              type="button"
+              onClick={downloadCSVTemplte}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-indigo-300 hover:text-white bg-indigo-900/60 hover:bg-indigo-800/80 border border-indigo-700/60 transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Download Sample CSV Template for Excel"
+            >
+              <span>📥</span> Download CSV Template
+            </button>
             <button
               type="button"
               onClick={() => setActiveTab('single')}
@@ -848,11 +839,13 @@ export default function DesignRequestForm() {
                   <thead>
                     <tr className="bg-slate-900 text-white border-b border-slate-800 font-bold uppercase tracking-wider text-[10px]">
                       <th className="p-3">#</th>
-                      <th className="p-3">Category</th>
-                      <th className="p-3">Blog Sub-Category</th>
+                      <th className="p-3">Category & Sub-Category</th>
+                      <th className="p-3">Client / Site</th>
                       <th className="p-3">Title / Topic</th>
                       <th className="p-3">Keywords</th>
-                      <th className="p-3">Specific Points</th>
+                      <th className="p-3">Points / Details</th>
+                      <th className="p-3">Priority</th>
+                      <th className="p-3">Due Date</th>
                       <th className="p-3 text-right">Action</th>
                     </tr>
                   </thead>
@@ -860,20 +853,39 @@ export default function DesignRequestForm() {
                     {csvPreview.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-3 font-semibold text-slate-400">{idx + 1}</td>
-                        <td className="p-3 font-bold text-slate-900">{row.category}</td>
                         <td className="p-3">
-                          <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-bold border border-indigo-200 text-[11px]">
-                            {row.blog_category || '—'}
+                          <p className="font-bold text-slate-900">{row.category}</p>
+                          {row.blog_category && (
+                            <span className="inline-block mt-0.5 bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold border border-indigo-200 text-[10px]">
+                              {row.blog_category}
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-bold text-indigo-900 max-w-[140px] truncate">
+                          {row.client_name || '—'}
+                        </td>
+                        <td className="p-3 font-medium text-slate-800 max-w-[160px] truncate">{row.title || '—'}</td>
+                        <td className="p-3 font-mono text-slate-600 max-w-[160px] truncate">{row.keywords || '—'}</td>
+                        <td className="p-3 text-slate-600 max-w-[200px] truncate">{row.points_to_include || '—'}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                            row.priority === 'high' || row.priority === 'urgent'
+                              ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                              : row.priority === 'low'
+                              ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                              : 'bg-amber-100 text-amber-700 border border-amber-200'
+                          }`}>
+                            {row.priority}
                           </span>
                         </td>
-                        <td className="p-3 font-medium text-slate-800 max-w-[180px] truncate">{row.title || '—'}</td>
-                        <td className="p-3 font-mono text-slate-600 max-w-[180px] truncate">{row.keywords || '—'}</td>
-                        <td className="p-3 text-slate-600 max-w-[220px] truncate">{row.points_to_include || '—'}</td>
+                        <td className="p-3 font-mono text-slate-600 text-[11px] whitespace-nowrap">
+                          {row.due_date || '—'}
+                        </td>
                         <td className="p-3 text-right">
                           <button
                             type="button"
                             onClick={() => removeCSVRow(idx)}
-                            className="text-rose-500 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50"
+                            className="text-rose-500 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50 cursor-pointer"
                             title="Remove row"
                           >
                             ✕

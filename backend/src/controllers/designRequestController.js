@@ -151,9 +151,24 @@ async function createBulkCSVRequests(req, res, next) {
       return res.status(422).json({ success: false, message: 'You are not assigned to any team yet. Contact admin.' });
     }
 
-    const designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    let designerId = null;
+    const isAllEditors = req.body.designer_id === 'all';
+    if (isAllEditors) {
+      const activeDes = await pool.query(
+        "SELECT id FROM users WHERE role IN ('designer', 'editor') AND is_active=TRUE ORDER BY id ASC LIMIT 1"
+      );
+      if (activeDes.rows.length > 0) {
+        designerId = activeDes.rows[0].id;
+      } else {
+        const fallback = await pool.query("SELECT id FROM users WHERE is_active=TRUE ORDER BY id ASC LIMIT 1");
+        designerId = fallback.rows[0]?.id || null;
+      }
+    } else {
+      designerId = req.body.designer_id ? Number(req.body.designer_id) : null;
+    }
+
     if (!designerId) {
-      return res.status(422).json({ success: false, message: 'Please select a designer to assign these bulk requests' });
+      return res.status(422).json({ success: false, message: 'Please select an editor to assign these bulk requests' });
     }
 
     const { items } = req.body;
@@ -176,15 +191,16 @@ async function createBulkCSVRequests(req, res, next) {
         const pointsToInclude = item.points_to_include || item.pointsToInclude ? String(item.points_to_include || item.pointsToInclude).trim() : null;
         const priority = PRIORITIES.includes(item.priority) ? item.priority : 'medium';
         const clientName = item.client_name || item.clientName ? String(item.client_name || item.clientName).trim().slice(0, 160) : null;
+        const dueDate = item.due_date || item.dueDate || item.target_date ? String(item.due_date || item.dueDate || item.target_date).trim() : null;
 
         const resDb = await client.query(
           `INSERT INTO design_requests
             (employee_id, team_id, team_lead_id, designer_id, title, category, blog_category, keywords, points_to_include,
-             priority, status, current_level, client_name)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'forwarded','designer',$11) RETURNING ${REQ_COLS}`,
+             priority, status, current_level, client_name, due_date)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'forwarded','designer',$11,$12) RETURNING ${REQ_COLS}`,
           [
             req.user.id, req.user.team_id, teamLeadId, designerId, title, category, blogCategory, keywords, pointsToInclude,
-            priority, clientName,
+            priority, clientName, dueDate || null,
           ]
         );
         const reqObj = resDb.rows[0];
@@ -193,7 +209,7 @@ async function createBulkCSVRequests(req, res, next) {
         await client.query(
           `INSERT INTO design_request_events (request_id, actor_id, actor_role, action, message)
            VALUES ($1,$2,'employee','submitted',$3)`,
-          [reqObj.id, req.user.id, `Bulk CSV upload row created and assigned to designer`]
+          [reqObj.id, req.user.id, `Bulk CSV upload row created and assigned to ${isAllEditors ? 'All Editors' : 'editor'}`]
         );
       }
       await client.query('COMMIT');
