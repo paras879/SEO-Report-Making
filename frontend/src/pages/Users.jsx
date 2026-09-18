@@ -47,6 +47,7 @@ export default function Users() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [teamFilter, setTeamFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
 
@@ -232,12 +233,15 @@ export default function Users() {
     }
     if (roleFilter !== 'all' && u.role !== roleFilter) return false;
     if (teamFilter !== 'all' && String(u.team_id) !== String(teamFilter)) return false;
+    if (statusFilter === 'active' && !u.is_active) return false;
+    if (statusFilter === 'blocked' && u.is_active) return false;
     return true;
   });
 
   // Stats Counters
   const totalCount = users.length;
   const activeCount = users.filter((u) => u.is_active).length;
+  const blockedCount = users.filter((u) => !u.is_active).length;
   const tlCount = users.filter((u) => u.role === 'team_lead').length;
   const devCount = users.filter((u) => u.role === 'developer').length;
   const empCount = users.filter((u) => u.role === 'employee').length;
@@ -275,14 +279,33 @@ export default function Users() {
       {msg && <div className="alert-success"><span>✅</span><span>{msg}</span></div>}
 
       {/* Quick Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="card p-4 hover:shadow-card transition-all">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div
+          onClick={() => setStatusFilter('all')}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer ${
+            statusFilter === 'all' ? 'ring-2 ring-slate-900' : ''
+          }`}
+        >
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Members</p>
           <p className="text-2xl font-black text-slate-900 mt-1">{totalCount}</p>
         </div>
-        <div className="card p-4 hover:shadow-card transition-all">
+        <div
+          onClick={() => setStatusFilter('active')}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer ${
+            statusFilter === 'active' ? 'ring-2 ring-emerald-500 bg-emerald-50/20' : ''
+          }`}
+        >
           <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Active Accounts</p>
           <p className="text-2xl font-black text-emerald-700 mt-1">{activeCount}</p>
+        </div>
+        <div
+          onClick={() => setStatusFilter('blocked')}
+          className={`card p-4 hover:shadow-card transition-all border-rose-200 bg-rose-50/40 cursor-pointer ${
+            statusFilter === 'blocked' ? 'ring-2 ring-rose-500' : ''
+          }`}
+        >
+          <p className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Blocked Accounts</p>
+          <p className="text-2xl font-black text-rose-700 mt-1">{blockedCount}</p>
         </div>
         <div className="card p-4 hover:shadow-card transition-all">
           <p className="text-[11px] font-bold text-sky-600 uppercase tracking-wider">Team Leads</p>
@@ -318,6 +341,28 @@ export default function Users() {
                 ✕
               </button>
             )}
+          </div>
+
+          {/* Status Filter Dropdown / Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl text-[11px] shrink-0 font-bold">
+            {[
+              ['all', 'All Status'],
+              ['active', '🟢 Active'],
+              ['blocked', '🚫 Blocked'],
+            ].map(([k, l]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setStatusFilter(k)}
+                className={`px-3 py-1.5 rounded-xl transition-all ${
+                  statusFilter === k
+                    ? 'bg-white text-slate-900 shadow-sm font-extrabold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {l}
+              </button>
+            ))}
           </div>
 
           {/* Role Filter Tabs */}
