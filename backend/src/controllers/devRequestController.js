@@ -539,8 +539,137 @@ async function deleteRequest(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// POST /api/dev-requests/bulk-csv (employee)
+async function createBulkCSVRequests(req, res, next) {
+  try {
+    if (req.user.role !== 'employee') {
+      return res.status(403).json({ success: false, message: 'Only employees can upload bulk requests' });
+    }
+    if (!req.user.team_id) {
+      return res.status(422).json({ success: false, message: 'You are not assigned to any team yet. Contact admin.' });
+    }
+
+    let developerId = null;
+    let devName = null;
+    const isAllDevs = String(req.body.developer_id) === 'all';
+
+    if (isAllDevs) {
+      const allDevs = await pool.query("SELECT id, name FROM users WHERE role='developer' AND is_active=TRUE ORDER BY id ASC LIMIT 1");
+      developerId = allDevs.rows[0]?.id || null;
+      if (!developerId) {
+        const fallback = await pool.query("SELECT id, name FROM users WHERE role IN ('developer','admin','super_admin') AND is_active=TRUE ORDER BY id ASC LIMIT 1");
+        developerId = fallback.rows[0]?.id || null;
+      }
+      devName = 'All Developers';
+    } else {
+      developerId = req.body.developer_id ? Number(req.body.developer_id) : null;
+      if (!developerId) {
+        return res.status(422).json({ success: false, message: 'Please select a developer to assign these bulk requests' });
+      }
+      const devRes = await pool.query("SELECT id, name FROM users WHERE id=$1 AND is_active=TRUE", [developerId]);
+      if (devRes.rows[0]) {
+        devName = devRes.rows[0].name;
+      }
+    }
+
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(422).json({ success: false, message: 'No rows provided in CSV data' });
+    }
+
+    const team = await pool.query('SELECT team_lead_id FROM teams WHERE id=$1', [req.user.team_id]);
+    const teamLeadId = team.rows[0]?.team_lead_id || null;
+
+    const insertedRequests = [];
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const item of items) {
+        const title = item.title ? String(item.title).trim().slice(0, 200) : 'Technical Issue Request';
+        const description = item.description || item.points_to_include || item.details ? String(item.description || item.points_to_include || item.details).trim() : null;
+        const priority = PRIORITIES.includes(item.priority) ? item.priority : 'medium';
+        const rawCategory = String(item.category || 'other').trim();
+        let category = 'other';
+        if (CATEGORIES.includes(rawCategory)) {
+          category = rawCategory;
+        } else {
+          const lower = rawCategory.toLowerCase();
+          if (lower.includes('hosting') || lower.includes('server') || lower.includes('dns')) category = 'hosting_server';
+          else if (lower.includes('ssl') || lower.includes('security')) category = 'ssl_security';
+          else if (lower.includes('404') || lower.includes('500') || lower.includes('error')) category = 'http_errors';
+          else if (lower.includes('speed') || lower.includes('cwv') || lower.includes('vitals')) category = 'speed_cwv';
+          else if (lower.includes('wordpress') || lower.includes('plugin') || lower.includes('cms')) category = 'cms_plugin';
+          else if (lower.includes('schema') || lower.includes('meta') || lower.includes('tracking')) category = 'schema_meta';
+          else if (lower.includes('feature') || lower.includes('new page')) category = 'feature_request';
+        }
+
+        const clientName = item.client_name || item.clientName ? String(item.client_name || item.clientName).trim().slice(0, 160) : null;
+        const dueDate = item.due_date || item.dueDate || item.target_date ? String(item.due_date || item.dueDate || item.target_date).trim() : null;
+
+        const siteName = item.site_name || item.siteName || item.site || clientName || 'Client Website';
+        const siteUrl = item.site_url || item.siteUrl || item.url || '';
+        const sitesObj = [{ name: siteName, urls: siteUrl ? [siteUrl] : [] }];
+
+        const resDb = await client.query(
+          `INSERT INTO dev_requests
+            (employee_id, team_id, team_lead_id, developer_id, title, description, sites, priority,
+             status, current_level, category, client_name, due_date)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'forwarded','developer',$9,$10,$11) RETURNING ${REQ_COLS}`,
+          [
+            req.user.id, req.user.team_id, teamLeadId, developerId, title, description,
+            JSON.stringify(sitesObj), priority, category, clientName, dueDate || null,
+          ]
+        );
+        const reqObj = resDb.rows[0];
+        insertedRequests.push(reqObj);
+
+        await client.query(
+          `INSERT INTO dev_request_events (request_id, actor_id, actor_role, action, message)
+           VALUES ($1,$2,'employee','submitted',$3)`,
+          [reqObj.id, req.user.id, `Bulk CSV upload row created and assigned to ${devName || 'developer'}`]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+
+    if (isAllDevs) {
+      const allDevs = await pool.query("SELECT id FROM users WHERE role='developer' AND is_active=TRUE");
+      for (const d of allDevs.rows) {
+        await notify({
+          userId: d.id,
+          title: 'Bulk Developer Requests Assigned 🛠️',
+          message: `${req.user.name} uploaded ${insertedRequests.length} developer requests via CSV.`,
+        });
+      }
+    } else if (developerId) {
+      await notify({
+        userId: developerId,
+        title: 'Bulk Developer Requests Assigned 🛠️',
+        message: `${req.user.name} assigned ${insertedRequests.length} developer requests to you via CSV.`,
+      });
+    }
+
+    if (teamLeadId && insertedRequests.length > 0) {
+      await notify({
+        userId: teamLeadId,
+        title: 'Bulk Developer Requests Uploaded',
+        message: `${req.user.name} uploaded ${insertedRequests.length} developer requests via CSV.`,
+      });
+    }
+
+    await logAudit({ userId: req.user.id, action: 'devreq_bulk_created', entityType: 'dev_request', details: { count: insertedRequests.length }, req });
+    res.status(201).json({ success: true, count: insertedRequests.length, requests: insertedRequests });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
-  listDevelopers, createRequest, forwardToDeveloper, startProgress, submitForQA,
+  listDevelopers, createRequest, createBulkCSVRequests, forwardToDeveloper, startProgress, submitForQA,
   tlReject, reopenRequest, resolveRequest, addComment, listRequests, getRequest, exportCSV, deleteRequest,
 };
+
 

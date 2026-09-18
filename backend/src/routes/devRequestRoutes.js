@@ -29,6 +29,7 @@ router.delete('/:id', ctrl.deleteRequest);
 
 // employee raises a request
 router.post('/', authorize('employee'), [body('title').trim().notEmpty()], validate, ctrl.createRequest);
+router.post('/bulk-csv', authorize('employee'), ctrl.createBulkCSVRequests);
 
 // team lead / admin actions
 router.post('/:id/forward', authorize('team_lead', 'admin', 'super_admin'), [body('developer_id').isInt()], validate, ctrl.forwardToDeveloper);
