@@ -32,10 +32,10 @@ const CATEGORY_CONFIG = {
   'On-Page': {
     subCategoryLabel: 'On-Page Graphic Type',
     subCategories: [
-      { id: 'Hero Banner', label: 'Hero Banner / Slider', desc: 'Main website hero header visual', icon: '🖼️' },
-      { id: 'Service Page Graphic', label: 'Service / Landing Page', desc: 'Visuals for service feature sections', icon: '🛠️' },
-      { id: 'CTA Banner', label: 'CTA / Offer Banner', desc: 'Promotional & conversion action banner', icon: '💡' },
-      { id: 'Section Layout Graphic', label: 'Section Illustration', desc: 'Custom vector graphic for page layout', icon: '📐' },
+      { id: 'Hero Banner / Slider', label: 'Hero Banner / Slider', desc: 'Main website hero header visual', icon: '🖼️' },
+      { id: 'Service / Landing Page', label: 'Service / Landing Page', desc: 'Visuals for service feature sections', icon: '🛠️' },
+      { id: 'CTA / Offer Banner', label: 'CTA / Offer Banner', desc: 'Promotional & conversion action banner', icon: '💡' },
+      { id: 'Section Illustration', label: 'Section Illustration', desc: 'Custom vector graphic for page layout', icon: '📐' },
     ],
     keywordsPlaceholder: 'e.g. hero banner 1920x600, service landing page, call to action button, responsive header',
     titlePlaceholder: 'e.g. SEO Audit Service Landing Page Hero Banner (1920x600px)',
@@ -44,10 +44,10 @@ const CATEGORY_CONFIG = {
   'Blog Request': {
     subCategoryLabel: 'Blog Category',
     subCategories: [
-      { id: 'Information', label: 'Information (Informational)', desc: 'Visuals for explanatory & educational blogs', icon: '📚' },
-      { id: 'Lexical', label: 'Lexical / Lyrical', desc: 'Visuals for word definitions & terms', icon: '🔤' },
+      { id: 'Information (Informational)', label: 'Information (Informational)', desc: 'Visuals for explanatory & educational blogs', icon: '📚' },
+      { id: 'Lexical / Lyrical', label: 'Lexical / Lyrical', desc: 'Visuals for word definitions & terms', icon: '🔤' },
       { id: 'Case Studies', label: 'Case Studies', desc: 'Charts & proof visuals for case studies', icon: '📈' },
-      { id: 'Other', label: 'General / Other', desc: 'Standard blog thumbnails & feature images', icon: '🎨' },
+      { id: 'General / Other', label: 'General / Other', desc: 'Standard blog thumbnails & feature images', icon: '🎨' },
     ],
     keywordsPlaceholder: 'e.g. backlink audit, technical seo, google indexing rate, search intent',
     titlePlaceholder: 'e.g. Top 10 High Authority SEO Backlink Strategies Header Visual',
@@ -56,10 +56,10 @@ const CATEGORY_CONFIG = {
   'Social Media / Infographics': {
     subCategoryLabel: 'Social Media / Infographic Format',
     subCategories: [
-      { id: 'Data Infographic', label: 'Statistical Infographic', desc: 'Detailed data & process flowchart infographic', icon: '📊' },
-      { id: 'Social Carousel', label: 'LinkedIn / IG Carousel', desc: 'Multi-slide social post slides (1080x1080)', icon: '📱' },
-      { id: 'Post Graphic', label: 'Social Announcement', desc: 'Single promo post graphic for Twitter/LinkedIn', icon: '📢' },
-      { id: 'Story Banner', label: 'Vertical Story Banner', desc: '9:16 vertical ratio banner for Instagram/Pinterest', icon: '🎯' },
+      { id: 'Statistical Infographic', label: 'Statistical Infographic', desc: 'Detailed data & process flowchart infographic', icon: '📊' },
+      { id: 'LinkedIn / IG Carousel', label: 'LinkedIn / IG Carousel', desc: 'Multi-slide social post slides (1080x1080)', icon: '📱' },
+      { id: 'Social Announcement', label: 'Social Announcement', desc: 'Single promo post graphic for Twitter/LinkedIn', icon: '📢' },
+      { id: 'Vertical Story Banner', label: 'Vertical Story Banner', desc: '9:16 vertical ratio banner for Instagram/Pinterest', icon: '🎯' },
     ],
     keywordsPlaceholder: 'e.g. 1080x1080 square, linkedin carousel 5 slides, infographic flowchart, 9:16 story',
     titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Carousel (5 Slides)',
@@ -78,7 +78,7 @@ export default function DesignRequestForm() {
 
   // Single Form State
   const [category, setCategory] = useState('On-Page');
-  const [blogCategory, setBlogCategory] = useState('Hero Banner');
+  const [blogCategory, setBlogCategory] = useState('Hero Banner / Slider');
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
   const [pointsToInclude, setPointsToInclude] = useState('');
@@ -187,9 +187,11 @@ export default function DesignRequestForm() {
   const downloadCSVTemplte = () => {
     const csvContent =
       'category,blog_category,title,keywords,points_to_include,priority,client_name,due_date\n' +
-      '"On-Page","Hero Banner","Landing Page Hero Graphic","hero banner 1920x600, responsive","1. Dimensions 1920x600px desktop\\n2. Brand colors Dark Navy & Blue\\n3. CTA: Get Free SEO Audit","high","Apex Health Solutions","2026-10-01"\n' +
-      '"Blog Request","Information","Top 10 High Authority SEO Strategies","backlink audit, technical seo","1. Include comparison bar chart of organic traffic\\n2. Highlight 150% growth rate","medium","Metro Dental Care & Clinic","2026-10-05"\n' +
-      '"Social Media / Infographics","Social Carousel","5 Essential On-Page SEO Tips","linkedin carousel 5 slides, infographic","1. Slide 1: Cover\\n2. Slide 2-4: Key points\\n3. Slide 5: CTA","urgent","TechCrunch Inc","2026-10-10"';
+      '"On-Page","Hero Banner / Slider","Landing Page Hero Graphic","hero banner 1920x600, responsive","1. Dimensions 1920x600px desktop\\n2. Brand colors Dark Navy & Blue\\n3. CTA: Get Free SEO Audit","high","Apex Health Solutions","2026-10-01"\n' +
+      '"On-Page","Service / Landing Page","Service Feature Section Visual","service landing page visual","1. Clean vector graphic for service card","medium","Metro Dental Care & Clinic","2026-10-02"\n' +
+      '"Blog Request","Information (Informational)","Top 10 High Authority SEO Strategies","backlink audit, technical seo","1. Include comparison bar chart of organic traffic\\n2. Highlight 150% growth rate","medium","CloudSync Pro B2B","2026-10-05"\n' +
+      '"Blog Request","Lexical / Lyrical","SEO Glossary Terms Visual Header","lexical term definition","1. Modern typography for SEO terms","low","SEO Growth Marketing Agency","2026-10-06"\n' +
+      '"Social Media / Infographics","LinkedIn / IG Carousel","5 Essential On-Page SEO Tips","linkedin carousel 5 slides, infographic","1. Slide 1: Cover\\n2. Slide 2-4: Key points\\n3. Slide 5: CTA","urgent","TechCrunch Inc","2026-10-10"';
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -266,10 +268,23 @@ export default function DesignRequestForm() {
         row[h] = cols[idx] || '';
       });
       if (row.category || row.keywords || row.title || row.points_to_include || row.client_name) {
+        let cat = row.category || 'Blog Request';
+        const lowerCat = cat.toLowerCase();
+        if (lowerCat.includes('on-page') || lowerCat.includes('on page')) cat = 'On-Page';
+        else if (lowerCat.includes('blog')) cat = 'Blog Request';
+        else if (lowerCat.includes('social') || lowerCat.includes('info')) cat = 'Social Media / Infographics';
+
+        let subCat = row.blog_category || row.blogcategory || row.sub_category || row.subcategory || '';
+        if (!subCat) {
+          if (cat === 'On-Page') subCat = 'Hero Banner / Slider';
+          else if (cat === 'Blog Request') subCat = 'Information (Informational)';
+          else subCat = 'LinkedIn / IG Carousel';
+        }
+
         rows.push({
           id: i,
-          category: row.category || 'Blog Request',
-          blog_category: row.blog_category || row.blogcategory || row.sub_category || row.subcategory || 'Information',
+          category: cat,
+          blog_category: subCat,
           title: row.title || '',
           keywords: row.keywords || '',
           points_to_include: row.points_to_include || row.pointstoinclude || row.points || row.description || '',
