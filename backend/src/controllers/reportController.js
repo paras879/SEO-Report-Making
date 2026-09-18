@@ -486,11 +486,10 @@ async function exportReports(req, res, next) {
     if (to) { conds.push(`r.report_date <= $${i++}`); params.push(to); }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
+    // NOTE: select r.* (not named columns) so a missing/renamed column on an
+    // out-of-date DB just comes back blank instead of crashing the export (500).
     const { rows } = await pool.query(
-      `SELECT r.id, r.report_date, r.title, r.priority, r.status,
-              e.name AS employee, tl.name AS team_lead, t.name AS team,
-              r.client_name, r.project_name, r.website_url, r.hours_worked, r.backlinks_created,
-              r.keywords, r.task_done, r.challenges, r.next_day_plan, r.remarks
+      `SELECT r.*, e.name AS employee, tl.name AS team_lead, t.name AS team
        FROM reports r
        LEFT JOIN users e ON e.id=r.employee_id
        LEFT JOIN users tl ON tl.id=r.team_lead_id
