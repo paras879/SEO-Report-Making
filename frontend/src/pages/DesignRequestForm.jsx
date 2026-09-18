@@ -6,64 +6,64 @@ import SearchableSiteInput from '../components/SearchableSiteInput';
 
 const CATEGORIES = [
   {
-    id: 'On-Page',
-    label: 'On-Page Graphic / Banner',
-    desc: 'Website hero & service page banners',
-    icon: '🖼️',
+    id: 'Website Copy',
+    label: 'Website & Page Copy',
+    desc: 'Landing page, service page & website section copy',
+    icon: '📝',
     gradient: 'from-blue-600 to-indigo-600',
   },
   {
-    id: 'Blog Request',
-    label: 'Blog Request Visuals',
-    desc: 'Featured images & blog graphics',
-    icon: '✍️',
+    id: 'Blog Content',
+    label: 'Blog & Article Content',
+    desc: 'Informational blog posts, guides & case studies',
+    icon: '📚',
     gradient: 'from-indigo-600 to-purple-600',
   },
   {
-    id: 'Social Media / Infographics',
-    label: 'Social Media & Infographic',
-    desc: 'Infographics, carousels & social posts',
-    icon: '📱',
+    id: 'Social Media & PR',
+    label: 'Social Media Copy & PR',
+    desc: 'Social captions, ad copy, press releases & emails',
+    icon: '📢',
     gradient: 'from-purple-600 to-pink-600',
   },
 ];
 
 const CATEGORY_CONFIG = {
-  'On-Page': {
-    subCategoryLabel: 'On-Page Graphic Type',
+  'Website Copy': {
+    subCategoryLabel: 'Website Content Type',
     subCategories: [
-      { id: 'Hero Banner / Slider', label: 'Hero Banner / Slider', desc: 'Main website hero header visual', icon: '🖼️' },
-      { id: 'Service / Landing Page', label: 'Service / Landing Page', desc: 'Visuals for service feature sections', icon: '🛠️' },
-      { id: 'CTA / Offer Banner', label: 'CTA / Offer Banner', desc: 'Promotional & conversion action banner', icon: '💡' },
-      { id: 'Section Illustration', label: 'Section Illustration', desc: 'Custom vector graphic for page layout', icon: '📐' },
+      { id: 'Landing Page Copy', label: 'Landing Page Copy', desc: 'Hero section & conversion landing page copy', icon: '📝' },
+      { id: 'Service Page Content', label: 'Service Page Content', desc: 'Detailed service description & feature copy', icon: '🛠️' },
+      { id: 'CTA & Offer Copy', label: 'CTA & Offer Copy', desc: 'Call-to-action text & promotional offers', icon: '💡' },
+      { id: 'About / Corporate Copy', label: 'About / Corporate Copy', desc: 'Company profile, team & mission statement text', icon: '🏢' },
     ],
-    keywordsPlaceholder: 'e.g. hero banner 1920x600, service landing page, call to action button, responsive header',
-    titlePlaceholder: 'e.g. SEO Audit Service Landing Page Hero Banner (1920x600px)',
-    templateText: `1. Dimensions & Aspect Ratio (e.g. 1920x600px desktop / 768x500px mobile)\n2. Primary Heading & Sub-heading text overlay\n3. Brand color palette & background theme (e.g. Dark Navy & Neon Blue)\n4. CTA Button text & destination link (e.g. "Get Free SEO Audit")`,
+    keywordsPlaceholder: 'e.g. SEO audit service, target audience, conversion copywriting, value proposition',
+    titlePlaceholder: 'e.g. SEO Audit Service Landing Page Headline & Hero Section Copy',
+    templateText: `1. Target Audience & Tone of Voice (e.g. Professional, Persuasive, B2B)\n2. Primary Headline & Sub-headline text\n3. Key Value Propositions & Benefit points\n4. Call To Action (CTA) button text & desired customer action`,
   },
-  'Blog Request': {
-    subCategoryLabel: 'Blog Category',
+  'Blog Content': {
+    subCategoryLabel: 'Blog Content Category',
     subCategories: [
-      { id: 'Information (Informational)', label: 'Information (Informational)', desc: 'Visuals for explanatory & educational blogs', icon: '📚' },
-      { id: 'Lexical / Lyrical', label: 'Lexical / Lyrical', desc: 'Visuals for word definitions & terms', icon: '🔤' },
-      { id: 'Case Studies', label: 'Case Studies', desc: 'Charts & proof visuals for case studies', icon: '📈' },
-      { id: 'General / Other', label: 'General / Other', desc: 'Standard blog thumbnails & feature images', icon: '🎨' },
+      { id: 'Informational Blog Post', label: 'Informational Blog Post', desc: 'Explanatory articles & educational how-to guides', icon: '📚' },
+      { id: 'SEO Keyword Article', label: 'SEO Keyword Article', desc: 'Search engine optimized content targeting high-volume keywords', icon: '🔍' },
+      { id: 'Case Study Content', label: 'Case Study Content', desc: 'Client success story breakdown with data & results', icon: '📈' },
+      { id: 'Glossary / Terminology', label: 'Glossary / Terminology', desc: 'Definition of industry terms & lexical reference text', icon: '🔤' },
     ],
     keywordsPlaceholder: 'e.g. backlink audit, technical seo, google indexing rate, search intent',
-    titlePlaceholder: 'e.g. Top 10 High Authority SEO Backlink Strategies Header Visual',
-    templateText: `1. Include a modern comparison bar chart of organic traffic vs paid traffic\n2. Use brand theme colors (Deep Navy #0f172a & Electric Indigo #4f46e5)\n3. Add clear typography for "150% Ranking Increase" header`,
+    titlePlaceholder: 'e.g. Top 10 High Authority SEO Backlink Strategies for 2026',
+    templateText: `1. Proposed Word Count (e.g. 1500-2000 words)\n2. Target Primary & Secondary Keywords\n3. Article Outline / Subheadings (H2, H3 structure)\n4. Internal & External Linking preferences`,
   },
-  'Social Media / Infographics': {
-    subCategoryLabel: 'Social Media / Infographic Format',
+  'Social Media & PR': {
+    subCategoryLabel: 'Social Media & PR Format',
     subCategories: [
-      { id: 'Statistical Infographic', label: 'Statistical Infographic', desc: 'Detailed data & process flowchart infographic', icon: '📊' },
-      { id: 'LinkedIn / IG Carousel', label: 'LinkedIn / IG Carousel', desc: 'Multi-slide social post slides (1080x1080)', icon: '📱' },
-      { id: 'Social Announcement', label: 'Social Announcement', desc: 'Single promo post graphic for Twitter/LinkedIn', icon: '📢' },
-      { id: 'Vertical Story Banner', label: 'Vertical Story Banner', desc: '9:16 vertical ratio banner for Instagram/Pinterest', icon: '🎯' },
+      { id: 'Social Media Captions / Post', label: 'Social Media Captions / Post', desc: 'Engaging captions for LinkedIn, Instagram or X/Twitter', icon: '📢' },
+      { id: 'Ad Copy & Headlines', label: 'Ad Copy & Headlines', desc: 'Google / Meta ad headlines, descriptions & hooks', icon: '🎯' },
+      { id: 'Press Release / PR', label: 'Press Release / PR', desc: 'Official media release & company announcement copy', icon: '📰' },
+      { id: 'Email Newsletter Copy', label: 'Email Newsletter Copy', desc: 'Subscriber newsletter body text & subject lines', icon: '✉️' },
     ],
-    keywordsPlaceholder: 'e.g. 1080x1080 square, linkedin carousel 5 slides, infographic flowchart, 9:16 story',
-    titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Carousel (5 Slides)',
-    templateText: `1. Aspect Ratio / Platform (e.g. 1080x1080 for Instagram / 1080x1350 for LinkedIn)\n2. Slide-by-slide text breakdown (Slide 1: Cover, Slide 2-4: Key points, Slide 5: CTA)\n3. Highlight key statistics or process flowchart icons\n4. Include website URL / social handle watermark`,
+    keywordsPlaceholder: 'e.g. linkedin post captions, google ads headline, press release, newsletter subject lines',
+    titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Post & Caption Series',
+    templateText: `1. Target Social Platform (e.g. LinkedIn, Instagram, Twitter, Email)\n2. Post Hook / Subject Line\n3. Key takeaways & bullet points\n4. Hashtags & Call-To-Action link`,
   },
 };
 
@@ -72,13 +72,13 @@ export default function DesignRequestForm() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('single'); // 'single' | 'bulk'
 
-  // Designers List & Selected Designer
+  // Editors/Designers List & Selected Assignee
   const [designers, setDesigners] = useState([]);
   const [selectedDesigner, setSelectedDesigner] = useState('');
 
   // Single Form State
-  const [category, setCategory] = useState('On-Page');
-  const [blogCategory, setBlogCategory] = useState('Hero Banner / Slider');
+  const [category, setCategory] = useState('Website Copy');
+  const [blogCategory, setBlogCategory] = useState('Landing Page Copy');
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState('');
   const [pointsToInclude, setPointsToInclude] = useState('');
@@ -96,7 +96,7 @@ export default function DesignRequestForm() {
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState('');
 
-  const currentConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG['On-Page'];
+  const currentConfig = CATEGORY_CONFIG[category] || CATEGORY_CONFIG['Website Copy'];
   const selectedDesignerObj = selectedDesigner === 'all'
     ? { id: 'all', name: 'All Editors (Whole Team)' }
     : designers.find((d) => String(d.id) === String(selectedDesigner));
@@ -110,13 +110,13 @@ export default function DesignRequestForm() {
   // Handle Category Change
   const handleCategoryChange = (newCat) => {
     setCategory(newCat);
-    const newConfig = CATEGORY_CONFIG[newCat] || CATEGORY_CONFIG['On-Page'];
+    const newConfig = CATEGORY_CONFIG[newCat] || CATEGORY_CONFIG['Website Copy'];
     if (newConfig.subCategories && newConfig.subCategories.length > 0) {
       setBlogCategory(newConfig.subCategories[0].id);
     }
   };
 
-  // Handle Image Upload / Paste
+  // Handle File Upload
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files || []);
     files.forEach((file) => {
@@ -167,7 +167,7 @@ export default function DesignRequestForm() {
       if (res.data.success) {
         navigate(`/design-requests/${res.data.request.id}`);
       } else {
-        setError(res.data.message || 'Failed to submit design request');
+        setError(res.data.message || 'Failed to submit content request');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Server error occurred');
@@ -183,21 +183,21 @@ export default function DesignRequestForm() {
     }
   };
 
-  // CSV Template Downloader
+  // CSV Template Downloader for Content Requests
   const downloadCSVTemplte = () => {
     const csvContent =
       'category,blog_category,title,keywords,points_to_include,priority,client_name,due_date\n' +
-      '"On-Page","Hero Banner / Slider","Landing Page Hero Graphic","hero banner 1920x600, responsive","1. Dimensions 1920x600px desktop\\n2. Brand colors Dark Navy & Blue\\n3. CTA: Get Free SEO Audit","high","Apex Health Solutions","2026-10-01"\n' +
-      '"On-Page","Service / Landing Page","Service Feature Section Visual","service landing page visual","1. Clean vector graphic for service card","medium","Metro Dental Care & Clinic","2026-10-02"\n' +
-      '"Blog Request","Information (Informational)","Top 10 High Authority SEO Strategies","backlink audit, technical seo","1. Include comparison bar chart of organic traffic\\n2. Highlight 150% growth rate","medium","CloudSync Pro B2B","2026-10-05"\n' +
-      '"Blog Request","Lexical / Lyrical","SEO Glossary Terms Visual Header","lexical term definition","1. Modern typography for SEO terms","low","SEO Growth Marketing Agency","2026-10-06"\n' +
-      '"Social Media / Infographics","LinkedIn / IG Carousel","5 Essential On-Page SEO Tips","linkedin carousel 5 slides, infographic","1. Slide 1: Cover\\n2. Slide 2-4: Key points\\n3. Slide 5: CTA","urgent","TechCrunch Inc","2026-10-10"';
+      '"Website Copy","Landing Page Copy","SEO Audit Landing Page Content","seo audit service, conversion copywriting","1. Hero section headline & sub-headline\\n2. Value proposition bullet points\\n3. CTA: Get Free Audit","high","Apex Health Solutions","2026-10-01"\n' +
+      '"Website Copy","Service Page Content","Dental Services Feature Page Copy","dental care, clinic features","1. Comprehensive service breakdown\\n2. Patient testimonial snippets","medium","Metro Dental Care & Clinic","2026-10-02"\n' +
+      '"Blog Content","Informational Blog Post","Top 10 High Authority SEO Strategies","backlink audit, technical seo","1. 1500 words detailed guide\\n2. H2 & H3 subheadings with keyword placement","medium","CloudSync Pro B2B","2026-10-05"\n' +
+      '"Blog Content","Glossary / Terminology","SEO Terminology & Glossary Copy","seo terms, indexing, crawl budget","1. Clear definitions of 15 key SEO terms","low","SEO Growth Marketing Agency","2026-10-06"\n' +
+      '"Social Media & PR","Social Media Captions / Post","5 Essential On-Page SEO Checklist","linkedin captions, seo checklist","1. 5-slide LinkedIn carousel text breakdown\\n2. Hashtags & link to blog","urgent","TechCrunch Inc","2026-10-10"';
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'editor_requests_bulk_template.csv');
+    link.setAttribute('download', 'content_requests_bulk_template.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -228,7 +228,7 @@ export default function DesignRequestForm() {
     reader.readAsText(file);
   };
 
-  // Simple Robust CSV Parser
+  // CSV Parser
   const parseCSVText = (text) => {
     const lines = text.split(/\r\n|\n/).filter((l) => l.trim().length > 0);
     if (lines.length < 2) return [];
@@ -268,17 +268,17 @@ export default function DesignRequestForm() {
         row[h] = cols[idx] || '';
       });
       if (row.category || row.keywords || row.title || row.points_to_include || row.client_name) {
-        let cat = row.category || 'Blog Request';
+        let cat = row.category || 'Blog Content';
         const lowerCat = cat.toLowerCase();
-        if (lowerCat.includes('on-page') || lowerCat.includes('on page')) cat = 'On-Page';
-        else if (lowerCat.includes('blog')) cat = 'Blog Request';
-        else if (lowerCat.includes('social') || lowerCat.includes('info')) cat = 'Social Media / Infographics';
+        if (lowerCat.includes('website') || lowerCat.includes('page') || lowerCat.includes('on-page') || lowerCat.includes('copy')) cat = 'Website Copy';
+        else if (lowerCat.includes('blog') || lowerCat.includes('article')) cat = 'Blog Content';
+        else if (lowerCat.includes('social') || lowerCat.includes('pr') || lowerCat.includes('ad')) cat = 'Social Media & PR';
 
         let subCat = row.blog_category || row.blogcategory || row.sub_category || row.subcategory || '';
         if (!subCat) {
-          if (cat === 'On-Page') subCat = 'Hero Banner / Slider';
-          else if (cat === 'Blog Request') subCat = 'Information (Informational)';
-          else subCat = 'LinkedIn / IG Carousel';
+          if (cat === 'Website Copy') subCat = 'Landing Page Copy';
+          else if (cat === 'Blog Content') subCat = 'Informational Blog Post';
+          else subCat = 'Social Media Captions / Post';
         }
 
         rows.push({
@@ -318,7 +318,7 @@ export default function DesignRequestForm() {
     try {
       const res = await api.post('/design-requests/bulk-csv', { designer_id: selectedDesigner, items: csvPreview });
       if (res.data.success) {
-        setBulkSuccess(`Successfully submitted ${res.data.count} design requests! Redirecting...`);
+        setBulkSuccess(`Successfully submitted ${res.data.count} content requests! Redirecting...`);
         setTimeout(() => {
           navigate('/design-requests');
         }, 1500);
@@ -334,17 +334,17 @@ export default function DesignRequestForm() {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-4">
-      {/* Header Banner - Compact & Sleek */}
+      {/* Header Banner */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-4 rounded-2xl border border-slate-800 shadow-md relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 relative z-10">
           <div>
             <div className="flex items-center gap-2">
               <Link to="/design-requests" className="text-slate-400 hover:text-white transition-colors text-[11px] font-semibold flex items-center gap-1">
-                <span>←</span> Editor Requests Hub
+                <span>←</span> Content Requests Hub
               </Link>
             </div>
             <h1 className="text-lg sm:text-xl font-bold tracking-tight mt-0.5 flex items-center gap-2 text-white">
-              <span>✍️</span> Create Editor Request
+              <span>✍️</span> Raise a Content Request
             </h1>
           </div>
 
@@ -404,11 +404,11 @@ export default function DesignRequestForm() {
                 <span>Category</span>
                 <span className="text-rose-500">*</span>
               </label>
-              <span className="text-[11px] text-slate-400 font-medium">Select Category</span>
+              <span className="text-[11px] text-slate-400 font-medium">Select Content Category</span>
             </div>
 
             {/* Primary Category Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {CATEGORIES.map((c) => {
                 const isActive = category === c.id;
                 return (
@@ -437,7 +437,7 @@ export default function DesignRequestForm() {
               })}
             </div>
 
-            {/* Dynamic Sub-Category Section (Adapts to Selected Category!) */}
+            {/* Dynamic Sub-Category Section */}
             {currentConfig.subCategories && currentConfig.subCategories.length > 0 && (
               <div className="pt-3 border-t border-slate-100 space-y-2.5 animate-fade-in">
                 <div className="flex items-center justify-between">
@@ -501,7 +501,7 @@ export default function DesignRequestForm() {
                 <span className="w-5 h-5 rounded-md bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">3</span>
                 <span>Optional Title</span>
               </label>
-              <span className="text-slate-400 font-normal text-[11px]">Topic / Title name for visual</span>
+              <span className="text-slate-400 font-normal text-[11px]">Topic / Title name for content</span>
             </div>
             <input
               type="text"
@@ -540,7 +540,7 @@ export default function DesignRequestForm() {
           <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                Additional Details & Attachments (Optional)
+                Additional Details & Reference Documents (Optional)
               </h3>
             </div>
 
@@ -579,14 +579,14 @@ export default function DesignRequestForm() {
               </div>
             </div>
 
-            {/* Image upload */}
+            {/* Document / Image upload */}
             <div>
               <label className="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-3 text-center block cursor-pointer transition-colors bg-slate-50/50 hover:bg-brand-50/10">
-                <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
+                <input type="file" multiple onChange={handleFileUpload} className="hidden" />
                 <div className="flex items-center justify-center gap-2 text-slate-700">
-                  <span className="text-lg">📸</span>
-                  <span className="text-xs font-bold">Upload Reference Mockups / Screenshots</span>
-                  <span className="text-[11px] text-slate-400 font-normal">(PNG, JPG up to 5MB)</span>
+                  <span className="text-lg">📁</span>
+                  <span className="text-xs font-bold">Upload Reference Documents / Briefs / Screenshots</span>
+                  <span className="text-[11px] text-slate-400 font-normal">(PNG, JPG, PDF up to 5MB)</span>
                 </div>
               </label>
 
@@ -628,7 +628,7 @@ export default function DesignRequestForm() {
             </div>
 
             <p className="text-[11px] text-indigo-700 font-medium">
-              Select which editor will work on this request. Submission is blocked until an editor is selected.
+              Select which editor will work on this content request. Submission is blocked until an editor is selected.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
@@ -684,7 +684,6 @@ export default function DesignRequestForm() {
               })}
             </div>
 
-
             {!selectedDesigner && (
               <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
                 <span>⚠️</span> You MUST select an editor before submitting this request.
@@ -734,7 +733,6 @@ export default function DesignRequestForm() {
               <span>{bulkSuccess}</span>
             </div>
           )}
-
 
           {/* File Picker */}
           <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
@@ -800,86 +798,96 @@ export default function DesignRequestForm() {
                     }`}
                   >
                     <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                      🎨
+                      ✍️
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="font-bold text-xs text-slate-900 truncate">{d.name}</p>
                         {isSel && <span className="text-indigo-600 font-bold text-xs shrink-0">✓</span>}
                       </div>
-                      <p className="text-[10px] text-slate-500 font-mono truncate">@{d.username}</p>
+                      <p className="text-[10px] text-slate-500 font-mono truncate">@{d.username} • [{d.role?.toUpperCase() || 'EDITOR'}]</p>
                     </div>
                   </button>
                 );
               })}
             </div>
 
+            {!selectedDesigner && (
+              <p className="text-[11px] font-bold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 flex items-center gap-1.5 mt-2">
+                <span>⚠️</span> You MUST select an editor before submitting bulk requests.
+              </p>
+            )}
           </div>
 
-          {/* CSV Preview Table */}
+          {/* Parsed CSV Preview Table */}
           {csvPreview.length > 0 && (
-            <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3 animate-fade-in">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h3 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                  <span>👀</span> CSV File Preview ({csvPreview.length} items ready to submit)
-                </h3>
-                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  Valid Format
-                </span>
+            <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-sm space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                    CSV Rows Preview ({csvPreview.length} Content Requests Found)
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Review parsed content requests before submitting.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCsvPreview([])}
+                  className="text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-xl transition-all"
+                >
+                  Clear All Rows
+                </button>
               </div>
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="bg-slate-900 text-white border-b border-slate-800 font-bold uppercase tracking-wider text-[10px]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 text-[11px] uppercase font-bold text-slate-500 border-b border-slate-200">
+                    <tr>
                       <th className="p-3">#</th>
-                      <th className="p-3">Category & Sub-Category</th>
-                      <th className="p-3">Client / Site</th>
-                      <th className="p-3">Title / Topic</th>
+                      <th className="p-3">Category</th>
+                      <th className="p-3">Sub Category</th>
+                      <th className="p-3">Title & Requirements</th>
                       <th className="p-3">Keywords</th>
-                      <th className="p-3">Points / Details</th>
+                      <th className="p-3">Client</th>
                       <th className="p-3">Priority</th>
-                      <th className="p-3">Due Date</th>
-                      <th className="p-3 text-right">Action</th>
+                      <th className="p-3 text-center">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-100 font-medium">
                     {csvPreview.map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="p-3 font-semibold text-slate-400">{idx + 1}</td>
+                        <td className="p-3 font-bold text-slate-400">{idx + 1}</td>
                         <td className="p-3">
-                          <p className="font-bold text-slate-900">{row.category}</p>
-                          {row.blog_category && (
-                            <span className="inline-block mt-0.5 bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded font-bold border border-indigo-200 text-[10px]">
-                              {row.blog_category}
-                            </span>
+                          <span className="inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            {row.category}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-600 font-semibold">{row.blog_category || '-'}</td>
+                        <td className="p-3">
+                          <p className="font-bold text-slate-900">{row.title || 'Untitled Request'}</p>
+                          {row.points_to_include && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">{row.points_to_include}</p>
                           )}
                         </td>
-                        <td className="p-3 font-bold text-indigo-900 max-w-[140px] truncate">
-                          {row.client_name || '—'}
-                        </td>
-                        <td className="p-3 font-medium text-slate-800 max-w-[160px] truncate">{row.title || '—'}</td>
-                        <td className="p-3 font-mono text-slate-600 max-w-[160px] truncate">{row.keywords || '—'}</td>
-                        <td className="p-3 text-slate-600 max-w-[200px] truncate">{row.points_to_include || '—'}</td>
+                        <td className="p-3 font-mono text-[11px] text-slate-600">{row.keywords || '-'}</td>
+                        <td className="p-3 font-bold text-slate-800">{row.client_name || '-'}</td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            row.priority === 'high' || row.priority === 'urgent'
-                              ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                          <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
+                            row.priority === 'urgent'
+                              ? 'bg-rose-100 text-rose-700'
+                              : row.priority === 'high'
+                              ? 'bg-amber-100 text-amber-700'
                               : row.priority === 'low'
-                              ? 'bg-slate-100 text-slate-700 border border-slate-200'
-                              : 'bg-amber-100 text-amber-700 border border-amber-200'
+                              ? 'bg-slate-100 text-slate-700'
+                              : 'bg-blue-100 text-blue-700'
                           }`}>
                             {row.priority}
                           </span>
                         </td>
-                        <td className="p-3 font-mono text-slate-600 text-[11px] whitespace-nowrap">
-                          {row.due_date || '—'}
-                        </td>
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-center">
                           <button
                             type="button"
                             onClick={() => removeCSVRow(idx)}
-                            className="text-rose-500 hover:text-rose-700 font-bold p-1 rounded hover:bg-rose-50 cursor-pointer"
+                            className="w-7 h-7 rounded-lg text-rose-500 hover:bg-rose-50 border border-slate-200 flex items-center justify-center text-xs mx-auto"
                             title="Remove row"
                           >
                             ✕
@@ -890,27 +898,31 @@ export default function DesignRequestForm() {
                   </tbody>
                 </table>
               </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleSubmitBulk}
-                  disabled={bulkLoading || !selectedDesigner}
-                  className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 ${
-                    selectedDesigner
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
-                  }`}
-                >
-                  {bulkLoading
-                    ? 'Submitting Batch...'
-                    : selectedDesignerObj
-                    ? `🚀 Submit All ${csvPreview.length} Requests to ${selectedDesignerObj.name}`
-                    : '⚠️ Select an Editor First'}
-                </button>
-              </div>
             </div>
           )}
+
+          {/* Action Footer */}
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Link to="/design-requests" className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50">
+              Cancel
+            </Link>
+            <button
+              type="button"
+              disabled={bulkLoading || !selectedDesigner || csvPreview.length === 0}
+              onClick={handleSubmitBulk}
+              className={`px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-2 ${
+                selectedDesigner && csvPreview.length > 0
+                  ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-brand-900/20'
+                  : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
+              }`}
+            >
+              {bulkLoading
+                ? 'Submitting Bulk Content Requests...'
+                : selectedDesigner
+                ? `🚀 Submit ${csvPreview.length} Content Requests (${selectedDesignerObj?.name || ''})`
+                : '⚠️ Select an Editor First'}
+            </button>
+          </div>
         </div>
       )}
     </div>

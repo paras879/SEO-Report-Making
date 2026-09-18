@@ -391,19 +391,7 @@ export default function DevRequestForm() {
                 })}
               </div>
 
-              {/* Dynamic Category Tip Banner */}
-              {activeCategoryMeta?.tip && (
-                <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-brand-50/70 via-indigo-50/50 to-brand-50/70 border border-brand-200/80 text-xs text-brand-900 flex items-center justify-between gap-3 animate-fade-in">
-                  <span className="font-semibold">{activeCategoryMeta.tip}</span>
-                  <button
-                    type="button"
-                    onClick={applyCategoryTemplate}
-                    className="text-[11px] font-bold text-brand-700 hover:text-brand-900 bg-white hover:bg-brand-100 border border-brand-300 px-2.5 py-1 rounded-lg transition-all shrink-0 shadow-sm"
-                  >
-                    📋 Load Template
-                  </button>
-                </div>
-              )}
+
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
@@ -447,15 +435,8 @@ export default function DevRequestForm() {
               </div>
 
               <div className="sm:col-span-3">
-                <div className="flex items-center justify-between mb-1">
+                <div className="mb-1">
                   <label className="label text-xs font-bold text-slate-700 mb-0">Describe the Problem *</label>
-                  <button
-                    type="button"
-                    onClick={applyCategoryTemplate}
-                    className="text-[11px] font-bold text-brand-600 hover:underline"
-                  >
-                    + Insert {activeCategoryMeta?.label} questions template
-                  </button>
                 </div>
                 <textarea
                   className="input min-h-[120px] text-xs leading-relaxed"
