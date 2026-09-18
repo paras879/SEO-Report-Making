@@ -8,6 +8,14 @@ const ctrl = require('../controllers/devRequestController');
 const router = express.Router();
 router.use(authenticate);
 
+// Guard: a non-numeric :id returns a clean 404 (never reaches the DB → no 500)
+router.param('id', (req, res, next, val) => {
+  if (!/^\d+$/.test(String(val))) {
+    return res.status(404).json({ success: false, message: 'Not found' });
+  }
+  next();
+});
+
 // developer list for employees/TL/admin to assign
 router.get('/developers', authorize('employee', 'team_lead', 'admin', 'super_admin'), ctrl.listDevelopers);
 

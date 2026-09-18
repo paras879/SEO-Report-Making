@@ -10,6 +10,14 @@ const att = require('../controllers/attachmentController');
 const router = express.Router();
 router.use(authenticate);
 
+// Guard: a non-numeric :id returns a clean 404 (never reaches the DB → no 500)
+router.param('id', (req, res, next, val) => {
+  if (!/^\d+$/.test(String(val))) {
+    return res.status(404).json({ success: false, message: 'Not found' });
+  }
+  next();
+});
+
 // export (admin/super_admin/supervisor/team_lead/employee) — MUST be before '/:id'
 router.get('/export/csv', authorize('admin', 'super_admin', 'supervisor', 'team_lead', 'employee'), ctrl.exportReports);
 

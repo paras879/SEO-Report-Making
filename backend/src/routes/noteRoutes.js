@@ -10,6 +10,14 @@ const router = express.Router();
 router.use(express.json({ limit: '16mb' }));
 router.use(authenticate);
 
+// Guard: a non-numeric :id returns a clean 404 (never reaches the DB → no 500)
+router.param('id', (req, res, next, val) => {
+  if (!/^\d+$/.test(String(val))) {
+    return res.status(404).json({ success: false, message: 'Not found' });
+  }
+  next();
+});
+
 // spam se bachav
 const createLimiter = rateLimit({ windowMs: 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
 

@@ -8,6 +8,14 @@ const ctrl = require('../controllers/designRequestController');
 const router = express.Router();
 router.use(authenticate);
 
+// Guard: a non-numeric :id returns a clean 404 (never reaches the DB → no 500)
+router.param('id', (req, res, next, val) => {
+  if (!/^\d+$/.test(String(val))) {
+    return res.status(404).json({ success: false, message: 'Not found' });
+  }
+  next();
+});
+
 // designers list for employees/TL/admin to assign
 router.get('/designers', authorize('employee', 'team_lead', 'admin', 'super_admin'), ctrl.listDesigners);
 
