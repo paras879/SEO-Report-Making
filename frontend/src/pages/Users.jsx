@@ -431,15 +431,15 @@ export default function Users() {
                         className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${
                           u.is_active
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 font-extrabold'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                            u.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-rose-600'
                           }`}
                         />
-                        {u.is_active ? 'Active' : 'Deactivated'}
+                        {u.is_active ? 'Active' : '🚫 Blocked'}
                       </span>
                     </td>
 
@@ -466,18 +466,18 @@ export default function Users() {
                           <span>Reset</span>
                         </button>
 
-                        {/* 3. Toggle Status */}
+                        {/* 3. Toggle Block / Unblock Status */}
                         {u.id !== user.id && (
                           <button
                             onClick={() => toggleActive(u)}
-                            className={`text-xs font-bold py-1.5 px-2.5 rounded-xl border transition shadow-2xs ${
+                            className={`text-xs font-extrabold py-1.5 px-3 rounded-xl border transition shadow-2xs ${
                               u.is_active
-                                ? 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                                : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                ? 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100'
+                                : 'bg-emerald-500 border-emerald-600 text-white hover:bg-emerald-600 shadow-sm'
                             }`}
-                            title={u.is_active ? 'Deactivate Account' : 'Activate Account'}
+                            title={u.is_active ? 'Block User Account' : 'Unblock User Account'}
                           >
-                            {u.is_active ? 'Deactivate' : 'Activate'}
+                            {u.is_active ? '🔒 Block' : '🔓 Unblock Account'}
                           </button>
                         )}
 

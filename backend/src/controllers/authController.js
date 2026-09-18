@@ -30,30 +30,28 @@ async function login(req, res, next) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
     if (!user.is_active) {
-      return res.status(403).json({ success: false, message: 'Account is deactivated. Contact admin.' });
+      return res.status(403).json({ success: false, message: 'Your account is blocked. Please contact admin to unblock your account.' });
     }
 
     // ---- Brute-force lockout: agar account locked hai to rok do ----
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      const mins = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
       await logAudit({ userId: user.id, action: 'login_blocked_locked', req });
-      return res.status(423).json({
+      return res.status(403).json({
         success: false,
-        message: `Too many wrong attempts. Account is locked for ${mins} minute(s).`,
+        message: 'Your account is blocked. Please contact admin to unblock your account.',
       });
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) {
-      // failed attempt count badhao; limit cross to lock
+      // failed attempt count badhao; limit cross (>= 5) to block account permanently until admin unblocks
       const attempts = (user.failed_attempts || 0) + 1;
       if (attempts >= MAX_FAILED_ATTEMPTS) {
-        const until = new Date(Date.now() + LOCK_MINUTES * 60000);
-        await pool.query('UPDATE users SET failed_attempts = $1, locked_until = $2 WHERE id = $3', [attempts, until, user.id]);
-        await logAudit({ userId: user.id, action: 'account_locked', details: { attempts }, req });
-        return res.status(423).json({
+        await pool.query('UPDATE users SET failed_attempts = $1, is_active = FALSE, locked_until = NULL WHERE id = $2', [attempts, user.id]);
+        await logAudit({ userId: user.id, action: 'account_blocked_max_attempts', details: { attempts }, req });
+        return res.status(403).json({
           success: false,
-          message: `Too many wrong attempts. Account locked for ${LOCK_MINUTES} minutes.`,
+          message: 'Your account is blocked. Please contact admin to unblock your account.',
         });
       }
       await pool.query('UPDATE users SET failed_attempts = $1 WHERE id = $2', [attempts, user.id]);

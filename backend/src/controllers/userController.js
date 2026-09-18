@@ -156,7 +156,14 @@ async function updateUser(req, res, next) {
       fields.push(`role = $${i++}`);
       params.push(role);
     }
-    if (is_active !== undefined) { fields.push(`is_active = $${i++}`); params.push(is_active); }
+    if (is_active !== undefined) {
+      fields.push(`is_active = $${i++}`);
+      params.push(is_active);
+      if (is_active === true) {
+        fields.push(`failed_attempts = 0`);
+        fields.push(`locked_until = NULL`);
+      }
+    }
     if (team_id !== undefined) {
       fields.push(`team_id = $${i++}`);
       params.push(team_id ? Number(team_id) : null);
