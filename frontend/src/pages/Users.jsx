@@ -281,41 +281,67 @@ export default function Users() {
       {/* Quick Metrics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div
-          onClick={() => setStatusFilter('all')}
-          className={`card p-4 hover:shadow-card transition-all cursor-pointer ${
-            statusFilter === 'all' ? 'ring-2 ring-slate-900' : ''
+          onClick={() => { setStatusFilter('all'); setRoleFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer select-none active:scale-95 ${
+            statusFilter === 'all' && roleFilter === 'all' ? 'ring-2 ring-slate-900 bg-slate-50/50' : ''
           }`}
+          title="Show All Members"
         >
           <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Members</p>
           <p className="text-2xl font-black text-slate-900 mt-1">{totalCount}</p>
         </div>
+
         <div
-          onClick={() => setStatusFilter('active')}
-          className={`card p-4 hover:shadow-card transition-all cursor-pointer ${
-            statusFilter === 'active' ? 'ring-2 ring-emerald-500 bg-emerald-50/20' : ''
+          onClick={() => { setStatusFilter('active'); setRoleFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer select-none active:scale-95 ${
+            statusFilter === 'active' ? 'ring-2 ring-emerald-500 bg-emerald-50/30' : ''
           }`}
+          title="Filter Active Accounts"
         >
           <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Active Accounts</p>
           <p className="text-2xl font-black text-emerald-700 mt-1">{activeCount}</p>
         </div>
+
         <div
-          onClick={() => setStatusFilter('blocked')}
-          className={`card p-4 hover:shadow-card transition-all border-rose-200 bg-rose-50/40 cursor-pointer ${
-            statusFilter === 'blocked' ? 'ring-2 ring-rose-500' : ''
+          onClick={() => { setStatusFilter('blocked'); setRoleFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all border-rose-200 cursor-pointer select-none active:scale-95 ${
+            statusFilter === 'blocked' ? 'ring-2 ring-rose-500 bg-rose-50/60' : 'bg-rose-50/30'
           }`}
+          title="Filter Blocked Accounts"
         >
           <p className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Blocked Accounts</p>
           <p className="text-2xl font-black text-rose-700 mt-1">{blockedCount}</p>
         </div>
-        <div className="card p-4 hover:shadow-card transition-all">
+
+        <div
+          onClick={() => { setRoleFilter('team_lead'); setStatusFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer select-none active:scale-95 ${
+            roleFilter === 'team_lead' ? 'ring-2 ring-sky-500 bg-sky-50/30' : ''
+          }`}
+          title="Filter Team Leads"
+        >
           <p className="text-[11px] font-bold text-sky-600 uppercase tracking-wider">Team Leads</p>
           <p className="text-2xl font-black text-sky-700 mt-1">{tlCount}</p>
         </div>
-        <div className="card p-4 hover:shadow-card transition-all">
+
+        <div
+          onClick={() => { setRoleFilter('developer'); setStatusFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer select-none active:scale-95 ${
+            roleFilter === 'developer' ? 'ring-2 ring-amber-500 bg-amber-50/30' : ''
+          }`}
+          title="Filter Developers"
+        >
           <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Developers</p>
           <p className="text-2xl font-black text-amber-700 mt-1">{devCount}</p>
         </div>
-        <div className="card p-4 hover:shadow-card transition-all">
+
+        <div
+          onClick={() => { setRoleFilter('employee'); setStatusFilter('all'); }}
+          className={`card p-4 hover:shadow-card transition-all cursor-pointer select-none active:scale-95 ${
+            roleFilter === 'employee' ? 'ring-2 ring-indigo-500 bg-indigo-50/30' : ''
+          }`}
+          title="Filter Employees"
+        >
           <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Employees</p>
           <p className="text-2xl font-black text-indigo-700 mt-1">{empCount}</p>
         </div>
