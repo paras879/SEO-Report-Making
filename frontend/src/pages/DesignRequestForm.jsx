@@ -35,16 +35,6 @@ const CATEGORIES = [
     border: 'border-pink-500/30',
     bgLight: 'bg-pink-50/50',
   },
-  {
-    id: 'Email & PR',
-    label: 'Email, PR & Whitepapers',
-    desc: 'Newsletters, press releases, e-books & product briefs',
-    icon: '✉️',
-    badge: 'Enterprise Copy',
-    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
-    border: 'border-teal-500/30',
-    bgLight: 'bg-teal-50/50',
-  },
 ];
 
 const CATEGORY_CONFIG = {
@@ -86,19 +76,6 @@ const CATEGORY_CONFIG = {
     titlePlaceholder: 'e.g. 5 Essential On-Page SEO Checklist LinkedIn Post & Caption Series',
     defaultWordCount: '300 - 600 words',
     templateText: `1. Platform: LinkedIn & Twitter/X\n2. Post Hook: "90% of websites fail technical SEO audits for 3 stupid reasons."\n3. Key Points:\n   - Reason 1: Unindexed Javascript renders\n   - Reason 2: Broken canonical tags\n   - Reason 3: Heavy uncompressed image assets\n4. Call To Action & Link: "Read the full 2026 audit guide link in comments👇"`,
-  },
-  'Email & PR': {
-    subCategoryLabel: 'Select Email / Publication Format',
-    subCategories: [
-      { id: 'Email Newsletter', label: 'Email Newsletter Copy', desc: 'Weekly subscriber newsletter body & subject lines', icon: '✉️' },
-      { id: 'Whitepaper / E-Book', label: 'Whitepaper / E-Book', desc: 'In-depth downloadable industry report copy', icon: '📑' },
-      { id: 'Sales Pitch Copy', label: 'Sales Email Sequence', desc: 'Cold outreach & warm lead follow-up emails', icon: '💼' },
-      { id: 'Product Description', label: 'Product Specs & Copy', desc: 'E-commerce product descriptions & spec sheets', icon: '🛍️' },
-    ],
-    keywordsPlaceholder: 'e.g. B2B email sequence, newsletter subject lines, whitepaper overview',
-    titlePlaceholder: 'e.g. Q4 SEO Trends & AI Search Impact Email Newsletter Brief',
-    defaultWordCount: '800 - 1200 words',
-    templateText: `1. Subject Line Options:\n   - "Is AI Search destroying your organic traffic?"\n   - "3 SEO adjustments you must make before Q4"\n2. Preview Text: "Here is what Google\'s newest update means for your site."\n3. Email Body Outline:\n   - Opening hook & industry context\n   - 3 actionable takeaways\n   - CTA button: "Book Strategy Call"`,
   },
 };
 
@@ -489,7 +466,7 @@ export default function DesignRequestForm() {
             </div>
 
             {/* Primary Category Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 gap-3.5">
               {CATEGORIES.map((c) => {
                 const isActive = category === c.id;
                 return (
