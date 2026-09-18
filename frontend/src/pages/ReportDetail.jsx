@@ -78,6 +78,99 @@ export default function ReportDetail() {
     showToast('📲 WhatsApp client update copied to clipboard!');
   };
 
+  // Build a clean, print-friendly report and open the browser's Save-as-PDF dialog.
+  // No external library needed — works everywhere.
+  const downloadPdf = () => {
+    if (!data?.report) return;
+    const r = data.report;
+    const esc = (v) =>
+      v === null || v === undefined
+        ? ''
+        : String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const dateFormatted = r.report_date?.slice(0, 10) || '';
+    let parsedLinks = [];
+    if (r.backlink_urls) {
+      try {
+        parsedLinks = typeof r.backlink_urls === 'string' ? JSON.parse(r.backlink_urls) : r.backlink_urls;
+      } catch {}
+    }
+    const row = (label, value) =>
+      value === null || value === undefined || value === '' || value === false
+        ? ''
+        : `<tr><td class="lbl">${esc(label)}</td><td class="val">${esc(value)}</td></tr>`;
+    const linksHtml =
+      Array.isArray(parsedLinks) && parsedLinks.length
+        ? `<h3>Live Backlink URLs (${parsedLinks.length})</h3><ul>${parsedLinks
+            .map((l) => `<li>${esc(l.url || '')}${l.anchor ? ` — ${esc(l.anchor)}` : ''}</li>`)
+            .join('')}</ul>`
+        : '';
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>SEO Report — ${esc(r.title || 'Report')}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 0; padding: 32px; }
+  .head { border-bottom: 3px solid #4f46e5; padding-bottom: 16px; margin-bottom: 20px; }
+  .head h1 { margin: 0 0 6px; font-size: 22px; }
+  .meta { color: #64748b; font-size: 13px; }
+  .pill { display: inline-block; background: #eef2ff; color: #4f46e5; border-radius: 6px; padding: 2px 10px; font-size: 12px; font-weight: 700; margin-right: 6px; }
+  h3 { margin: 22px 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  td { padding: 7px 10px; font-size: 13px; vertical-align: top; border-bottom: 1px solid #f1f5f9; }
+  td.lbl { color: #64748b; font-weight: 600; width: 34%; text-transform: uppercase; font-size: 11px; letter-spacing: .03em; }
+  td.val { color: #0f172a; font-weight: 500; white-space: pre-wrap; }
+  ul { margin: 6px 0; padding-left: 20px; font-size: 13px; }
+  .foot { margin-top: 28px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px; }
+  @media print { body { padding: 0; } }
+</style></head><body>
+  <div class="head">
+    <h1>${esc(r.title || 'SEO Report')}</h1>
+    <div class="meta">
+      <span class="pill">${esc((r.status || '').replace(/_/g, ' ').toUpperCase())}</span>
+      <span class="pill">${esc((r.priority || 'medium').toUpperCase())} PRIORITY</span>
+      ${dateFormatted ? `<span>📅 ${esc(dateFormatted)}</span>` : ''}
+    </div>
+  </div>
+  <h3>Overview</h3>
+  <table>
+    ${row('Employee', r.employee_name)}
+    ${row('Team', r.team_name)}
+    ${row('Team Lead', r.team_lead_name)}
+    ${row('Client', r.client_name)}
+    ${row('Project', r.project_name)}
+    ${row('Website', r.website_url)}
+    ${row('Hours Worked', r.hours_worked != null ? `${r.hours_worked} hrs` : '')}
+    ${row('Work Status', r.work_status)}
+  </table>
+  <h3>Work & Deliverables</h3>
+  <table>
+    ${row('Work Done', r.task_done)}
+    ${row('Service Pages', r.service_pages)}
+    ${row('Blog Pages', r.blog_pages)}
+    ${row('Keywords', r.keywords)}
+    ${row('Challenges', r.challenges)}
+    ${row('Next Day Plan', r.next_day_plan)}
+    ${row('Remarks', r.remarks)}
+  </table>
+  <h3>Backlinks (${esc(r.backlinks_created ?? 0)} total)</h3>
+  <table>
+    ${row('Classified', r.backlinks_classified || 0)}
+    ${row('Guest Post', r.backlinks_guest_post || 0)}
+    ${row('Blog Post', r.backlinks_blog_post || 0)}
+    ${row('Article Post', r.backlinks_article_post || 0)}
+  </table>
+  ${linksHtml}
+  <div class="foot">Generated from SEO Report System · ${esc(new Date().toLocaleString())}</div>
+  <script>window.onload = function(){ window.print(); }</script>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) {
+      showToast('⚠️ Please allow pop-ups to download the PDF');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  };
+
   const load = () => {
     api.get(`/reports/${id}`).then((r) => setData(r.data)).catch((e) => setErr(e.response?.data?.message || 'Failed to load report'));
   };
@@ -182,6 +275,15 @@ export default function ReportDetail() {
         </button>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={downloadPdf}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200/70 px-3.5 py-2 rounded-xl transition-all shadow-sm"
+            title="Download this report as a PDF"
+          >
+            <span>📄</span>
+            <span>Download PDF</span>
+          </button>
           <button
             type="button"
             onClick={copyWhatsAppSummary}
