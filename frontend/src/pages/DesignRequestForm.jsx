@@ -720,27 +720,6 @@ export default function DesignRequestForm() {
             </div>
           )}
 
-          {/* Instructions & Template Download Card */}
-          <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-5 py-4 rounded-2xl shadow-md space-y-3 border border-slate-800">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-              <div>
-                <h3 className="font-bold text-sm flex items-center gap-2 text-white">
-                  <span>📊</span> Excel / CSV Bulk Submission Guide
-                </h3>
-                <p className="text-xs text-slate-300 mt-0.5 leading-normal">
-                  Upload an Excel (.csv) file containing multiple blog graphic & keyword requests. Each row in your CSV file will automatically create a designer request ticket.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={downloadCSVTemplte}
-                className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
-              >
-                📥 Download CSV Template
-              </button>
-            </div>
-          </div>
 
           {/* File Picker */}
           <div className="bg-white px-5 py-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
