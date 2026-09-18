@@ -6,12 +6,52 @@ import { PRIORITY_OPTIONS, DEV_CATEGORIES, DEFAULT_WEBSITES } from '../constants
 function SearchableSiteInput({ value, onChange, onSelectUrl }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [customWebsites, setCustomWebsites] = useState([]);
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pasteText, setPasteText] = useState('');
 
-  const filtered = DEFAULT_WEBSITES.filter(
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('custom_seo_websites');
+      if (saved) setCustomWebsites(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  const allWebsites = [...DEFAULT_WEBSITES, ...customWebsites];
+
+  const filtered = allWebsites.filter(
     (w) =>
-      w.name.toLowerCase().includes(search.toLowerCase()) ||
-      w.url.toLowerCase().includes(search.toLowerCase())
+      (w.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (w.url || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSavePastedWebsites = () => {
+    if (!pasteText.trim()) return;
+    const lines = pasteText
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const parsed = lines.map((line) => {
+      if (line.startsWith('http://') || line.startsWith('https://')) {
+        try {
+          const urlObj = new URL(line);
+          const name = urlObj.hostname.replace('www.', '');
+          return { name, url: line };
+        } catch {
+          return { name: line, url: line };
+        }
+      }
+      return { name: line, url: '' };
+    });
+
+    const updated = [...customWebsites, ...parsed];
+    setCustomWebsites(updated);
+    try {
+      localStorage.setItem('custom_seo_websites', JSON.stringify(updated));
+    } catch {}
+    setPasteText('');
+    setShowPasteModal(false);
+  };
 
   return (
     <div className="relative">
@@ -39,15 +79,23 @@ function SearchableSiteInput({ value, onChange, onSelectUrl }) {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
-            <div className="p-2 bg-slate-50 sticky top-0 border-b border-slate-100">
+          <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-2xl shadow-xl max-h-64 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+            <div className="p-2 bg-slate-50 sticky top-0 border-b border-slate-100 flex items-center gap-2">
               <input
                 className="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                placeholder="🔍 Search website name or URL..."
+                placeholder="🔍 Type to search 70+ websites..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 autoFocus
               />
+              <button
+                type="button"
+                onClick={() => setShowPasteModal(true)}
+                className="shrink-0 text-[10px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2 py-1.5 rounded-lg hover:bg-brand-100 transition whitespace-nowrap"
+                title="Paste / Bulk Import Websites"
+              >
+                📋 + Import Sites
+              </button>
             </div>
             {filtered.map((w, idx) => (
               <button
@@ -62,7 +110,7 @@ function SearchableSiteInput({ value, onChange, onSelectUrl }) {
               >
                 <div>
                   <p className="text-xs font-bold text-slate-800 group-hover:text-brand-700">{w.name}</p>
-                  <p className="text-[10px] text-slate-400 font-mono">{w.url}</p>
+                  {w.url && <p className="text-[10px] text-slate-400 font-mono">{w.url}</p>}
                 </div>
                 <span className="text-[10px] text-brand-600 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
                   Select ➔
@@ -71,11 +119,37 @@ function SearchableSiteInput({ value, onChange, onSelectUrl }) {
             ))}
             {filtered.length === 0 && (
               <div className="p-3 text-center text-xs text-slate-400">
-                No matching site. Click outside to use custom site name.
+                No matching site. Click "+ Import Sites" or type custom site name.
               </div>
             )}
           </div>
         </>
+      )}
+
+      {/* Bulk Import Websites Modal */}
+      {showPasteModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-sm text-slate-900">📋 Paste / Import Website List</h3>
+              <button type="button" onClick={() => setShowPasteModal(false)} className="text-slate-400 hover:text-slate-700 font-bold text-sm">✕</button>
+            </div>
+            <p className="text-xs text-slate-500">
+              Paste your list of website names or URLs below (one per line). They will be added to your searchable dropdown list.
+            </p>
+            <textarea
+              className="input font-mono text-xs min-h-[140px]"
+              rows="6"
+              placeholder="e.g.&#10;https://myclient1.com&#10;Apex Dental Care&#10;https://myclient2.com"
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setShowPasteModal(false)} className="btn-secondary text-xs">Cancel</button>
+              <button type="button" onClick={handleSavePastedWebsites} className="btn-primary text-xs font-bold">📥 Save to Dropdown List</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -101,7 +175,7 @@ export default function DevRequestForm() {
   useEffect(() => {
     api.get('/dev-requests/developers')
       .then((r) => setDevelopers(r.data.developers || []))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const activeCategoryMeta = DEV_CATEGORIES.find((c) => c.value === category) || DEV_CATEGORIES[0];
@@ -252,11 +326,10 @@ export default function DevRequestForm() {
                   type="button"
                   key={c.value}
                   onClick={() => handleCategorySelect(c.value)}
-                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden group ${
-                    selected
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden group ${selected
                       ? 'border-brand-500 bg-brand-50/90 ring-2 ring-brand-500/25 shadow-sm transform scale-[1.02]'
                       : 'border-slate-200/90 hover:border-brand-300 bg-white hover:bg-slate-50/80'
-                  }`}
+                    }`}
                 >
                   {selected && (
                     <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-600 animate-ping"></span>
@@ -414,6 +487,7 @@ export default function DevRequestForm() {
                     value={s.name}
                     onChange={(val) => setSiteName(si, val)}
                     onSelectUrl={(url) => {
+
                       if (s.urls.length === 1 && !s.urls[0]) {
                         setUrl(si, 0, url);
                       }
@@ -517,11 +591,10 @@ export default function DevRequestForm() {
           <button
             type="button"
             onClick={() => { setSelectedDeveloper('all'); setErr(''); }}
-            className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
-              selectedDeveloper === 'all'
+            className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${selectedDeveloper === 'all'
                 ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-md font-bold'
                 : 'border-indigo-200/80 hover:border-indigo-300 bg-gradient-to-r from-indigo-50/70 to-purple-50/70 hover:bg-white text-slate-800'
-            }`}
+              }`}
           >
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-brand-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
               👥
@@ -543,11 +616,10 @@ export default function DevRequestForm() {
                 key={d.id}
                 type="button"
                 onClick={() => { setSelectedDeveloper(String(d.id)); setErr(''); }}
-                className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
-                  isSel
+                className={`p-3.5 rounded-2xl border text-left transition-all flex items-center gap-3 cursor-pointer ${isSel
                     ? 'border-indigo-600 bg-white text-indigo-950 ring-2 ring-indigo-500/30 shadow-md font-bold'
                     : 'border-indigo-100 hover:border-indigo-300 bg-white/80 hover:bg-white text-slate-800'
-                }`}
+                  }`}
               >
                 <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                   👨‍💻
@@ -581,19 +653,18 @@ export default function DevRequestForm() {
         </div>
         <button
           type="button"
-          className={`w-full sm:w-auto text-xs py-2.5 px-6 font-bold shadow-md rounded-xl transition-all flex items-center justify-center gap-2 ${
-            selectedDeveloper
+          className={`w-full sm:w-auto text-xs py-2.5 px-6 font-bold shadow-md rounded-xl transition-all flex items-center justify-center gap-2 ${selectedDeveloper
               ? 'btn-primary'
               : 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-75'
-          }`}
+            }`}
           disabled={saving || !selectedDeveloper}
           onClick={submit}
         >
           {saving
             ? 'Sending...'
             : selectedDevObj
-            ? `🚀 Submit to (${selectedDevObj.name})`
-            : '⚠️ Select a Developer First'}
+              ? `🚀 Submit to (${selectedDevObj.name})`
+              : '⚠️ Select a Developer First'}
         </button>
       </div>
     </div>

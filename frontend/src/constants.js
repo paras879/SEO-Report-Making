@@ -146,15 +146,105 @@ export const DEV_STATUS_MAP = {
 
 // Default Client Websites List for Searchable Dropdown
 export const DEFAULT_WEBSITES = [
-  { name: 'TechCrunch Inc', url: 'https://techcrunch.com' },
-  { name: 'Fashion Hub Store', url: 'https://fashionhub.example.com' },
-  { name: 'CloudSync Pro B2B', url: 'https://cloudsyncpro.example.com' },
+  // Health & Medical
   { name: 'Apex Health Solutions', url: 'https://apexhealth.example.com' },
-  { name: 'SEO Growth Marketing', url: 'https://seomarketing.example.com' },
-  { name: 'Global Logistics Portal', url: 'https://globallogistics.example.com' },
-  { name: 'Digital Media Network', url: 'https://digitalmedia.example.com' },
+  { name: 'Metro Dental Care & Clinic', url: 'https://metrodental.example.com' },
+  { name: 'Zenith Pharma & Research Labs', url: 'https://zenithpharma.example.com' },
+  { name: 'MedPlus Specialty Hospitals', url: 'https://medplushospitals.example.com' },
+  { name: 'CareFirst Diagnostic Center', url: 'https://carefirstlabs.example.com' },
+  { name: 'Pulse Heart & Cardiac Care', url: 'https://pulsecardiac.example.com' },
+  { name: 'Aura Skin & Cosmetic Surgery', url: 'https://auraskincare.example.com' },
+  { name: 'VisionCare Eye Hospital', url: 'https://visioncareeye.example.com' },
+
+  // E-Commerce & Retail
+  { name: 'Fashion Hub Store', url: 'https://fashionhub.example.com' },
+  { name: 'E-Commerce Global Storefront', url: 'https://store.example.com' },
+  { name: 'Crown Jewelers & Luxury', url: 'https://crownjewelers.example.com' },
+  { name: 'Organic Foods Express', url: 'https://organicfoodsexpress.example.com' },
+  { name: 'Urban Style Apparel', url: 'https://urbanstyle.example.com' },
+  { name: 'KiddyZone Toys & Apparel', url: 'https://kiddyzone.example.com' },
+  { name: 'HomeDecor Furnishings Direct', url: 'https://homedecordirect.example.com' },
+  { name: 'GadgetGalaxy Electronics', url: 'https://gadgetgalaxy.example.com' },
+  { name: 'Footwear Nation', url: 'https://footwearnation.example.com' },
+
+  // Tech, SaaS & IT Services
+  { name: 'TechCrunch Inc', url: 'https://techcrunch.com' },
+  { name: 'CloudSync Pro B2B', url: 'https://cloudsyncpro.example.com' },
+  { name: 'Vanguard Cyber Security', url: 'https://vanguardcyber.example.com' },
+  { name: 'HyperDrive Gaming Cloud', url: 'https://hyperdrivegaming.example.com' },
+  { name: 'Pure Water Tech Solutions', url: 'https://purewatertech.example.com' },
+  { name: 'DataCore AI Systems', url: 'https://datacoreai.example.com' },
+  { name: 'DevOps Cloud Solutions', url: 'https://devopscloud.example.com' },
+  { name: 'CyberShield IT Services', url: 'https://cybershieldit.example.com' },
+  { name: 'SaaSFlow Automation', url: 'https://saasflow.example.com' },
+  { name: 'CodeKraft Software Labs', url: 'https://codekraftlabs.example.com' },
+
+  // SEO, Marketing & Media
+  { name: 'SEO Growth Marketing Agency', url: 'https://seomarketing.example.com' },
+  { name: 'Digital Media Network Hub', url: 'https://digitalmedia.example.com' },
+  { name: 'Starlight Media Studios', url: 'https://starlightmedia.example.com' },
+  { name: 'BrandVibe Digital Agency', url: 'https://brandvibe.example.com' },
+  { name: 'AdPulse Marketing Solutions', url: 'https://adpulse.example.com' },
+  { name: 'ClickRight Performance Media', url: 'https://clickright.example.com' },
+  { name: 'ContentForge Copywriting', url: 'https://contentforge.example.com' },
+  { name: 'ViralReach Social Agency', url: 'https://viralreach.example.com' },
+
+  // Real Estate, Architecture & Construction
+  { name: 'Urban Real Estate Properties', url: 'https://urbanrealestate.example.com' },
+  { name: 'Skyline Construction & Infra', url: 'https://skylineconstruction.example.com' },
+  { name: 'Apex Luxury Apartments', url: 'https://apexapartments.example.com' },
+  { name: 'Prestige Commercial Spaces', url: 'https://prestigecommercial.example.com' },
+  { name: 'ArchCraft Interior Designers', url: 'https://archcraftinteriors.example.com' },
+  { name: 'GreenHomes Eco Builders', url: 'https://greenhomeseco.example.com' },
+  { name: 'Landmark Developers & Builders', url: 'https://landmarkbuilders.example.com' },
+
+  // Finance, Banking & Legal
   { name: 'Fintech Capital Hub', url: 'https://fintechcapital.example.com' },
-  { name: 'E-Commerce Storefront', url: 'https://store.example.com' },
+  { name: 'Apex Legal & Partners LLP', url: 'https://apexlegal.example.com' },
+  { name: 'Blue Horizon Capital & Advisory', url: 'https://bluehorizon.example.com' },
+  { name: 'TrustWealth Asset Management', url: 'https://trustwealth.example.com' },
+  { name: 'PayExpress Merchant Gateway', url: 'https://payexpress.example.com' },
+  { name: 'TaxBuddy Chartered Accountants', url: 'https://taxbuddyca.example.com' },
+  { name: 'SecureInsure Policy Brokers', url: 'https://secureinsure.example.com' },
+  { name: 'Prime Mutual Funds', url: 'https://primemutual.example.com' },
+
+  // Travel, Hospitality & Events
+  { name: 'Hospitality & Resort Group', url: 'https://hospitalitygroup.example.com' },
+  { name: 'Travelers Journey Tours & Travels', url: 'https://travelersjourney.example.com' },
+  { name: 'Grand Royale Hotel & Spa', url: 'https://grandroyalehotel.example.com' },
+  { name: 'FlyGlobal Booking Portal', url: 'https://flyglobalbooking.example.com' },
+  { name: 'Celebration Event Planners', url: 'https://celebrationevents.example.com' },
+  { name: 'Safari Expedition Club', url: 'https://safariexpedition.example.com' },
+  { name: 'Destination Weddings India', url: 'https://destinationweddings.example.com' },
+
+  // Automotive, Transport & Logistics
+  { name: 'Global Logistics Portal', url: 'https://globallogistics.example.com' },
+  { name: 'NextGen Auto Spares & Parts', url: 'https://nextgenauto.example.com' },
+  { name: 'Prime Logistics & Cargo Services', url: 'https://primelogistics.example.com' },
+  { name: 'SpeedyWheels Car Rental', url: 'https://speedywheels.example.com' },
+  { name: 'TransIndia Freight Carriers', url: 'https://transindiafreight.example.com' },
+  { name: 'EV Motors Tech Drive', url: 'https://evmotorstech.example.com' },
+
+  // Education, Training & HR
+  { name: 'EduLearn Global Academy', url: 'https://edulearn.example.com' },
+  { name: 'SkillSet Technical Institute', url: 'https://skillsetinstitute.example.com' },
+  { name: 'CareerPath Overseas Education', url: 'https://careerpathedu.example.com' },
+  { name: 'TalentHire Staffing Solutions', url: 'https://talenthirehr.example.com' },
+  { name: 'BrightMinds Preschool Chain', url: 'https://brightmindspreschool.example.com' },
+
+  // Energy, Environment & Agriculture
+  { name: 'Solaris Clean Energy Solutions', url: 'https://solarisenergy.example.com' },
+  { name: 'Green Earth Waste Recycling', url: 'https://greenearth.example.com' },
+  { name: 'AgriTech Farmers Portal', url: 'https://agritechfarmers.example.com' },
+  { name: 'EcoSolar Power Systems', url: 'https://ecosolarpower.example.com' },
+  { name: 'PureHarvest Organics', url: 'https://pureharvest.example.com' },
+
+  // Fitness, Lifestyle & Beauty
+  { name: 'Fitness First Wellness Club', url: 'https://fitnessfirst.example.com' },
+  { name: 'Zen Spa & Wellness Retreat', url: 'https://zenspawellness.example.com' },
+  { name: 'GlowSalon Beauty & Hair', url: 'https://glowsalon.example.com' },
+  { name: 'FitGym CrossFit Studio', url: 'https://fitgymcrossfit.example.com' },
 ];
+
 
 
