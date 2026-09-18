@@ -234,6 +234,8 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 -- add 'developer' and 'designer' to the user_role enum (safe / idempotent; PG 12+)
 ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'developer';
 ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'designer';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'supervisor';
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'editor';
 
 -- Site-issue tickets raised by employees: Employee -> Team Lead -> Developer -> resolved
 CREATE TABLE IF NOT EXISTS dev_requests (

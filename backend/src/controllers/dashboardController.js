@@ -13,7 +13,7 @@ async function stats(req, res, next) {
           (SELECT COUNT(*) FROM users WHERE role='team_lead') AS team_leads,
           (SELECT COUNT(*) FROM users WHERE role='employee') AS employees,
           (SELECT COUNT(*) FROM users WHERE role='developer') AS developers,
-          (SELECT COUNT(*) FROM users WHERE role IN ('designer','editor')) AS editors,
+          (SELECT COUNT(*) FROM users WHERE role::text IN ('designer','editor')) AS editors,
           (SELECT COUNT(*) FROM teams) AS teams,
           (SELECT COUNT(*) FROM reports) AS total_reports,
           (SELECT COUNT(*) FROM reports WHERE status='submitted') AS pending_tl,

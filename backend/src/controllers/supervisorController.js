@@ -75,15 +75,17 @@ async function getAllFiles(req, res, next) {
       }
     });
 
-    // 3. Attachments from Dev Request Comments
-    const devComments = await pool.query(`
-      SELECT 
-        c.id, 
-        c.file_url, 
-        c.file_name, 
-        c.file_type, 
-        c.created_at, 
-        c.request_id, 
+    // 3. Attachments from Dev Request Comments (table optional — skip if it doesn't exist)
+    let devComments = { rows: [] };
+    try {
+      devComments = await pool.query(`
+      SELECT
+        c.id,
+        c.file_url,
+        c.file_name,
+        c.file_type,
+        c.created_at,
+        c.request_id,
         dr.title AS associated_title,
         u.name AS commenter_name
       FROM dev_request_comments c
@@ -93,6 +95,7 @@ async function getAllFiles(req, res, next) {
       ORDER BY c.created_at DESC
       LIMIT 100
     `);
+    } catch (e) { /* dev_request_comments table not present — safe to skip */ }
 
     devComments.rows.forEach((row) => {
       files.push({
@@ -143,15 +146,17 @@ async function getAllFiles(req, res, next) {
       }
     });
 
-    // 5. Attachments from Design Request Comments
-    const desComments = await pool.query(`
-      SELECT 
-        c.id, 
-        c.file_url, 
-        c.file_name, 
-        c.file_type, 
-        c.created_at, 
-        c.request_id, 
+    // 5. Attachments from Design Request Comments (table optional — skip if it doesn't exist)
+    let desComments = { rows: [] };
+    try {
+      desComments = await pool.query(`
+      SELECT
+        c.id,
+        c.file_url,
+        c.file_name,
+        c.file_type,
+        c.created_at,
+        c.request_id,
         dr.title AS associated_title,
         u.name AS commenter_name
       FROM design_request_comments c
@@ -161,6 +166,7 @@ async function getAllFiles(req, res, next) {
       ORDER BY c.created_at DESC
       LIMIT 100
     `);
+    } catch (e) { /* design_request_comments table not present — safe to skip */ }
 
     desComments.rows.forEach((row) => {
       files.push({
@@ -210,7 +216,7 @@ async function getTeamOverview(req, res, next) {
         COALESCE(SUM(dr.hours_spent), 0) AS total_hours
       FROM users u
       LEFT JOIN design_requests dr ON dr.designer_id = u.id
-      WHERE u.role IN ('designer', 'editor')
+      WHERE u.role::text IN ('designer', 'editor')
       GROUP BY u.id
       ORDER BY u.name
     `);

@@ -96,7 +96,7 @@ async function listUsers(req, res, next) {
     if (req.user.role === 'admin') {
       conds.push(`role <> 'super_admin'`);
     }
-    if (role) { conds.push(`role = $${i++}`); params.push(role); }
+    if (role) { conds.push(`role::text = $${i++}`); params.push(role); }
     if (team_id) { conds.push(`team_id = $${i++}`); params.push(team_id); }
     if (q) { conds.push(`(name ILIKE $${i} OR email ILIKE $${i} OR username ILIKE $${i})`); params.push(`%${q}%`); i++; }
 
